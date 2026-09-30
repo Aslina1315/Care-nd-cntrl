@@ -1,9 +1,9 @@
 const API=window.__HATCHABLE__?.api||"/api",$=s=>document.querySelector(s);
-const S={view:"explorer",patients:[],selected:null,sources:[],overview:null,member:null,headers:[],rows:[],file:null,selectedSource:null,externalMode:true,hospitals:[],demoMode:false,workspaceReady:false,demoOps:null,demoAudit:[]};
+const S={view:"explorer",patients:[],selected:null,sources:[],overview:null,member:null,workspaces:[],workspaceId:null,headers:[],rows:[],file:null,selectedSource:null,externalMode:true,hospitals:[],demoMode:false,workspaceReady:false,demoOps:null,demoAudit:[]};
 const esc=v=>String(v??"").replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]});
 const titles={home:"Command Center",patients:"Patients",population:"Population",dashboard:"Population Dashboard",network:"PHC Network",resources:"Resources",actions:"Actions",reports:"Reports",explorer:"Hospital & Data Explorer",ai:"Connect with AI",data:"Data & Trust",help:"Help & Feedback"};
 function toast(a,b){var x=document.createElement("div");x.className="toast";x.innerHTML="<b>"+esc(a)+"</b>"+(b?"<small>"+esc(b)+"</small>":"");document.body.appendChild(x);setTimeout(function(){x.remove()},3000)}
-async function api(p,o){var r=await fetch(API+p,Object.assign({cache:"no-store"},o||{}, {headers:Object.assign({"Content-Type":"application/json"},(o&&o.headers)||{})}));var d={};try{d=await r.json()}catch(e){}if(!r.ok)throw Error(d.error||"Request failed");return d}
+async function api(p,o){var headers=Object.assign({"Content-Type":"application/json"},(o&&o.headers)||{});if(S.workspaceId)headers["X-Workspace-Id"]=S.workspaceId;var r=await fetch(API+p,Object.assign({cache:"no-store"},o||{},{headers:headers}));var d={};try{d=await r.json()}catch(e){}if(!r.ok)throw Error(d.error||"Request failed");return d}
 function section(h,p){return "<div class='section-title'><div><p class='eyebrow'>CARE & CTRL</p><h1>"+h+"</h1><p>"+p+"</p></div></div>"}
 function help(a,b){return "<div class='helper'><b>What this does:</b> "+a+"<br><b>What you'll get:</b> "+b+"</div>"}
 function metric(a,b,c){return "<article class='metric'><div class='label'>"+a+" <span>•</span></div><span class='value'>"+esc(b)+"</span><small>"+c+"</small></article>"}
@@ -267,8 +267,10 @@ async function copilot(k){try{var d;if(S.externalMode){d={pending_actions:0,pati
 async function loadOverview(){try{S.overview=await api("/system/overview");$("#dataState").textContent=S.overview.connected_sources?"DATA CONNECTED":"DATA AWAITING";$("#dataDot").style.background=S.overview.connected_sources?"#27b4a7":"#b97817";$("#systemStatus").textContent=S.overview.connected_sources?"System operational":"Ready for verified sources";$("#systemSub").textContent=S.overview.connected_sources?"Backend connected · verified sources available":"Backend connected · awaiting verified sources";$("#systemDot").style.background=S.overview.connected_sources?"#43c2a8":"#b97817"}catch(e){$("#dataState").textContent="CONNECTION ISSUE";$("#systemDot").style.background="#b33b45";$("#systemStatus").textContent="API unavailable"}}
 async function loadDemoOps(){if(!S.demoMode)return;try{S.demoOps=await api("/explorer/demo-operations");S.demoAudit=[{event_type:"DEMO_SOURCE_CONNECTED",detail:"HAPI FHIR synthetic clinical source connected",actor_id:"demo",created_at:new Date().toISOString()}]}catch(e){toast("Demo scenario unavailable",e.message)}}
 async function workspace(){
-  var d=await api("/hospital/context");
+  var d=await api("/hospital/context"+(S.workspaceId?"?hospital_id="+encodeURIComponent(S.workspaceId):""));
+  S.workspaces=d.workspaces||[];
   S.member=d.member;
+  if(S.member)S.workspaceId=S.member.id;
   S.workspaceReady=!!S.member;
   S.demoMode=false;
   var existing=S.member;
@@ -276,7 +278,7 @@ async function workspace(){
     "<div class='workspace-mark'>⌂</div><p class='eyebrow'>CARE & CTRL · WORKSPACE</p>"+
     "<h2>"+(existing?"Choose how to enter CARE & CTRL":"Set up your hospital workspace")+"</h2>"+
     "<p>"+(existing?"Your hospital data stays inside its workspace. Choose the workspace for this session, or enter Demo Mode for judging and source exploration.":"A workspace keeps your hospital's patients, sources, actions and audit trail together. For a hackathon demo, you can continue without one.")+"</p>"+
-    (existing?"<div class='current-workspace'><div class='workspace-status'></div><div><small>AVAILABLE WORKSPACE</small><b>"+esc(existing.name)+"</b><span>"+esc([existing.city,existing.state].filter(Boolean).join(", ")||"Hospital workspace")+" · "+esc(existing.role||"staff")+"</span></div><em>READY</em></div>":"<div class='workspace-benefits'><div><b>01</b><span>Patient data stays scoped to your organisation.</span></div><div><b>02</b><span>Actions, sources and audit stay together.</span></div><div><b>03</b><span>Demo Mode remains clearly separated.</span></div></div>")+
+    (existing?"<div class='current-workspace'><div class='workspace-status'></div><div><small>SELECTED WORKSPACE</small><b>"+esc(existing.name)+"</b><span>"+esc([existing.city,existing.state].filter(Boolean).join(", ")||"Hospital workspace")+" · "+esc(existing.role||"staff")+"</span></div><em>READY</em></div>"+(S.workspaces.length>1?"<div class='field workspace-switch-field'><label>SWITCH WORKSPACE</label><select id='workspaceSelect'>"+S.workspaces.map(function(w){return "<option value='"+esc(w.id)+"' "+(String(w.id)===String(S.workspaceId)?"selected":"")+">"+esc(w.name)+" · "+esc([w.city,w.state].filter(Boolean).join(", "))+"</option>"}).join("")+"</select></div>":""):"<div class='workspace-benefits'><div><b>01</b><span>Patient data stays scoped to your organisation.</span></div><div><b>02</b><span>Actions, sources and audit stay together.</span></div><div><b>03</b><span>Demo Mode remains clearly separated.</span></div></div>")+
     "<div class='workspace-choice-actions'>"+
       (existing?"<button type='button' class='workspace-action primary' id='enterWorkspace'><span>ENTER WORKSPACE</span><b>"+esc(existing.name)+"</b><small>Use this hospital workspace</small><i>→</i></button>":"")+
       "<button type='button' class='workspace-action secondary' id='continueDemo'><span>DEMO MODE</span><b>Explore CARE & CTRL</b><small>Use clearly labelled simulated data</small><i>→</i></button>"+
@@ -285,6 +287,8 @@ async function workspace(){
     "<form id='setup' hidden><div class='form-grid'><div class='field'><label>ORGANISATION / HOSPITAL</label><input name='name' required placeholder='City Care Hospital'></div><div class='field'><label>CITY</label><input name='city' placeholder='Chennai'></div><div class='field'><label>STATE</label><input name='state' placeholder='Tamil Nadu'></div></div><div class='modal-actions'><button type='button' class='button' id='cancelSetup'>Back</button><button class='button primary'>Create workspace</button></div></form>"+
     "</div></div>";
   var modal=$("#modal"),setup=$("#setup"),create=$("#newWorkspace"),demo=$("#continueDemo"),enter=$("#enterWorkspace");
+  var workspaceSelect=$("#workspaceSelect");
+  if(workspaceSelect)workspaceSelect.onchange=async function(){S.workspaceId=this.value;modal.remove();S.selectedSource=null;S.patients=[];S.externalMode=false;S.view="home";toast("Workspace changed","Loading the selected authorised workspace.");await loadOverview();await render()};
   function closeWorkspace(mode){
     modal.remove();
     S.demoMode=mode==="demo";
@@ -315,7 +319,7 @@ async function workspace(){
     e.preventDefault();
     try{
       var out=await api("/hospital/onboard",{method:"POST",body:JSON.stringify(Object.fromEntries(new FormData(e.target).entries()))});
-      S.member=out.member||null;S.workspaceReady=true;S.demoMode=false;
+      S.member=out.member||null;S.workspaceId=S.member?.id||null;S.workspaceReady=true;S.demoMode=false;
       modal.remove();await loadOverview();await render();
     }catch(x){toast("Workspace setup failed",x.message)}
   };

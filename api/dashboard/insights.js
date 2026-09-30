@@ -2,7 +2,8 @@ import { db } from "hatchable";
 export const access="user";
 export const methods=["GET"];
 export default async function(req,res){
- const hm=await db.query("SELECT hospital_id FROM hospital_members WHERE user_id=$1 LIMIT 1",[req.user.id]);
+ const ws=String(req.headers?.["x-workspace-id"]||"").trim();
+ const hm=await db.query("SELECT hospital_id FROM hospital_members WHERE user_id=$1 AND ($2='' OR hospital_id::text=$2) LIMIT 1",[req.user.id,ws]);
  if(!hm.rows.length)return res.json({patients:0,age_groups:[],diagnoses:[],medications:[],name_clusters:[]});
  const h=hm.rows[0].hospital_id;
  const [p,d,m,n]=await Promise.all([

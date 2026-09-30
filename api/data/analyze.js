@@ -20,7 +20,8 @@ export default async function(req,res){
   const rows=Array.isArray(body.rows)?body.rows.slice(0,1500):[];
   const headers=Array.isArray(body.headers)?body.headers.slice(0,200):[];
   if(!text&&!rows.length&&!body.analysis)return res.status(400).json({error:"No extractable file content was supplied."});
-  const hm=await db.query("SELECT hospital_id FROM hospital_members WHERE user_id=$1 LIMIT 1",[u.id]);
+  const ws=String(req.headers?.["x-workspace-id"]||"").trim();
+  const hm=await db.query("SELECT hospital_id FROM hospital_members WHERE user_id=$1 AND ($2='' OR hospital_id::text=$2) LIMIT 1",[u.id,ws]);
   if(!hm.rows.length)return res.status(403).json({error:"A hospital workspace is required before importing patient data."});
   const hospitalId=hm.rows[0].hospital_id;
 
@@ -59,8 +60,8 @@ Rules: preserve only facts present in the file; leave unavailable values empty. 
   }
   if(!body.commit){return res.json({preview:true,analysis:{document_type:parsed.document_type,confidence:parsed.confidence,summary:parsed.summary,cleaning_actions:parsed.cleaning_actions||[]},patients_detected:(parsed.patients||[]).length,preview_patients:(parsed.patients||[]).slice(0,8)})}
 
-  const src=await db.query("INSERT INTO data_sources(name,source_type,status,last_seen_at,freshness_seconds,provenance) VALUES($1,'document_upload','imported',now(),0,$2) RETURNING id,name,status,last_seen_at,provenance",
-    [fileName,"User-uploaded healthcare file; parsed and normalized by CARE & CTRL. Original values remain source-bound; this import is an uploaded snapshot."]);
+  const src=await db.query("INSERT INTO data_sources(name,source_type,status,last_seen_at,freshness_seconds,provenance,hospital_id) VALUES($1,'document_upload','imported',now(),0,$2,$3) RETURNING id,name,status,last_seen_at,provenance,hospital_id",
+    [fileName,"User-uploaded healthcare file; parsed and normalized by CARE & CTRL. Original values remain source-bound; this import is an uploaded snapshot.",hospitalId]);
   const sourceId=src.rows[0].id;
   await db.query("INSERT INTO patient_documents(patient_id,source_id,file_name,file_type,extracted_text,extracted_summary) VALUES(NULL,$1,$2,$3,$4,$5)",[sourceId,fileName,fileType,text.slice(0,12000),clean(parsed.summary)]);
   let created=0,updated=0,diag=0,meds=0,sigs=0,attrs=0;
@@ -84,6 +85,6 @@ Rules: preserve only facts present in the file; leave unavailable values empty. 
     for(const a of (p.attributes||[]))if(clean(a.key)&&clean(a.value)){await db.query("INSERT INTO patient_attributes(patient_id,source_id,attribute_key,attribute_value,data_type,observed_at) VALUES($1,$2,$3,$4,$5,$6)",[pid,sourceId,clean(a.key),clean(a.value),clean(a.data_type)||"text",iso(a.observed_at)]);attrs++}
   }
 
-  await db.query("INSERT INTO audit_events(event_type,entity_type,actor_id,detail) VALUES($1,$2,$3,$4)",["intelligent_file_import","data_source",u.id,JSON.stringify({file:fileName,document_type:parsed.document_type,confidence:parsed.confidence,patients_created:created,patients_updated:updated,diagnoses:diag,medications:meds,signals:sigs,attributes:attrs,cleaning_actions:parsed.cleaning_actions||[]})]);
+  await db.query("INSERT INTO audit_events(event_type,entity_type,actor_id,detail,hospital_id) VALUES($1,$2,$3,$4,$5)",["intelligent_file_import","data_source",u.id,JSON.stringify({file:fileName,document_type:parsed.document_type,confidence:parsed.confidence,patients_created:created,patients_updated:updated,diagnoses:diag,medications:meds,signals:sigs,attributes:attrs,cleaning_actions:parsed.cleaning_actions||[]}),hospitalId]);
   res.status(201).json({source:src.rows[0],analysis:{document_type:parsed.document_type,confidence:parsed.confidence,summary:parsed.summary,cleaning_actions:parsed.cleaning_actions||[]},patients_created:created,patients_updated:updated,diagnoses_imported:diag,medications_imported:meds,signals_imported:sigs,attributes_preserved:attrs});
 }

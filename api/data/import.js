@@ -20,8 +20,8 @@ export default async function(req,res){
   const hospitalId=hm.rows[0].hospital_id;
 
   const src=await db.query(
-    "INSERT INTO data_sources(name,source_type,status,last_seen_at,freshness_seconds,provenance) VALUES($1,'csv_upload','imported',now(),0,$2) RETURNING id,name,status,last_seen_at,provenance",
-    [fileName,"User-uploaded healthcare dataset; imported snapshot. Schema was profiled automatically; unmapped source fields are preserved as patient attributes."]
+    "INSERT INTO data_sources(name,source_type,status,last_seen_at,freshness_seconds,provenance,hospital_id) VALUES($1,'csv_upload','imported',now(),0,$2,$3) RETURNING id,name,status,last_seen_at,provenance,hospital_id",
+    [fileName,"User-uploaded healthcare dataset; imported snapshot. Schema was profiled automatically; unmapped source fields are preserved as patient attributes.",hospitalId]
   );
   const sourceId=src.rows[0].id;
 
@@ -83,6 +83,6 @@ export default async function(req,res){
     }
   }
 
-  await db.query("INSERT INTO audit_events(event_type,entity_type,actor_id,detail) VALUES($1,$2,$3,$4)",["csv_import","data_source",u.id,JSON.stringify({file:fileName,rows:rows.length,patients_created:imported,patients_updated:updated,signals,attributes,skipped,mapping_summary:{signals:signalDefs.length,attributes:attributeDefs.length}})]);
+  await db.query("INSERT INTO audit_events(event_type,entity_type,actor_id,detail,hospital_id) VALUES($1,$2,$3,$4,$5)",["csv_import","data_source",u.id,JSON.stringify({file:fileName,rows:rows.length,patients_created:imported,patients_updated:updated,signals,attributes,skipped,mapping_summary:{signals:signalDefs.length,attributes:attributeDefs.length}}),hospitalId]);
   res.status(201).json({source:src.rows[0],rows_received:rows.length,patients_imported:imported,patients_updated:updated,signals_imported:signals,attributes_preserved:attributes,skipped});
 }
