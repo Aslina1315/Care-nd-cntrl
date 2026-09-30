@@ -4,6 +4,11 @@ providers = ["email","google"]
 login_path = "/login"
 hosted_login = true
 
+[ai]
+required = true
+pin = "google"
+description = "Grounded CARE & CTRL Copilot uses Gemini for source-bound healthcare intelligence."
+
 [db.tables.hospital_members]
 read = "own"
 write = "own"
