@@ -21,12 +21,11 @@ const patients=Array.from({length:60},(_,i)=>{
  if(i%5===0)dx.push(diagnoses[(i+4)%diagnoses.length]);
  const meds=[medications[i%medications.length],medications[(i+3)%medications.length]];
  if(i%4===0)meds.push(medications[(i+6)%medications.length]);
- const signals=signalDefs.slice(0,3+(i%3)).map((s,j)=>({
-   type:s.type,signal_type:s.type,unit:s.unit,
-   value_numeric:s.base+((i*3+j*5)%11)-5,
-   observed_at:new Date(Date.now()-j*3600000).toISOString(),
-   source_id:"demo-clinical"
- }));
+ const signals=signalDefs.slice(0,3+(i%3)).map((s,j)=>{
+   var raw=s.base+((i*3+j*5)%11)-5;
+   var value=s.type==="spo2"?Math.max(92,Math.min(99,raw)):s.type==="heart_rate"?Math.max(60,Math.min(100,raw)):s.type==="glucose"?Math.max(90,Math.min(160,raw)):s.type==="systolic_bp"?Math.max(110,Math.min(150,raw)):Math.max(3000,Math.min(9000,raw*80));
+   return {type:s.type,signal_type:s.type,unit:s.unit,value_numeric:value,observed_at:new Date(Date.now()-j*3600000).toISOString(),source_id:"demo-clinical"};
+ });
  return {
    id:"demo-patient-"+String(i+1).padStart(3,"0"),
    external_ref:"SYN-PT-"+String(i+1).padStart(3,"0"),
