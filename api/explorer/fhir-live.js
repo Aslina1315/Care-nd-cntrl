@@ -34,9 +34,10 @@ function cleanPatient(p,i,byPatient){
   const signals=(byPatient.observations[id]||[]).sort((a,b)=>String(b.observed_at||"").localeCompare(String(a.observed_at||"")));
   const conditions=byPatient.conditions[id]||[];
   const encounters=byPatient.encounters[id]||[];
+  const medications=byPatient.medications[id]||[];
   return {
     id,
-    display_name:"Patient "+String(i+1).padStart(2,"0"),
+    display_name:p.name?.[0]?.text||[...(p.name?.[0]?.given||[]),p.name?.[0]?.family].filter(Boolean).join(" ")||"Patient "+String(i+1).padStart(2,"0"),
     external_ref:"FHIR/"+id,
     sex:p.gender||"not specified",
     date_of_birth:p.birthDate||null,
@@ -49,7 +50,9 @@ function cleanPatient(p,i,byPatient){
     signals:signals.slice(0,50),
     latest_signals:signals.slice(0,8),
     conditions:conditions.slice(0,30),
-    encounters:encounters.slice(0,30)
+    encounters:encounters.slice(0,30),
+    medications:medications.slice(0,30),
+    photo_url:p.photo?.[0]?.url||null
   };
 }
 export default async function(req,res){
@@ -61,10 +64,10 @@ export default async function(req,res){
     const privateHost=host==="localhost"||host==="127.0.0.1"||host==="0.0.0.0"||host==="::1"||/^10\./.test(host)||/^192\.168\./.test(host)||/^169\.254\./.test(host)||/^172\.(1[6-9]|2\d|3[01])\./.test(host);
     if(privateHost) return res.status(400).json({error:"Private or local FHIR endpoints are not allowed through the hosted connector"});
     const base=u.toString().replace(/\/$/,"");
-    const types=["Patient","Observation","Condition","Encounter"];
+    const types=["Patient","Observation","Condition","Encounter","MedicationRequest"];
     const results=await Promise.allSettled(types.map(t=>fetchBundle(base,t,t==="Patient"?100:1000)));
-    const by={observations:{},conditions:{},encounters:{}};
-    const counts={Patient:0,Observation:0,Condition:0,Encounter:0};
+    const by={observations:{},conditions:{},encounters:{},medications:{}};
+    const counts={Patient:0,Observation:0,Condition:0,Encounter:0,MedicationRequest:0};
     const failures=[];
     results.forEach((r,i)=>{
       const type=types[i];
@@ -93,6 +96,12 @@ export default async function(req,res){
           clinical_status:codingText(c.clinicalStatus),
           recorded_at:c.recordedDate||c.onsetDateTime||null
         });
+      });
+      if(type==="MedicationRequest") r.value.resources.forEach(m=>{
+        const pid=refId(m.subject?.reference); if(!pid)return;
+        const med=m.medicationCodeableConcept||m.medication?.concept||m.medicationReference||{};
+        const name=codingText(med)||m.medication?.reference?.display||"Medication";
+        (by.medications[pid] ||= []).push({id:m.id||null,name,status:m.status||null,dose:m.dosageInstruction?.[0]?.doseAndRate?.[0]?.doseQuantity?.value??null,unit:m.dosageInstruction?.[0]?.doseAndRate?.[0]?.doseQuantity?.unit||"",frequency:m.dosageInstruction?.[0]?.text||null,authored_on:m.authoredOn||null});
       });
       if(type==="Encounter") r.value.resources.forEach(e=>{
         const pid=refId(e.subject?.reference);

@@ -12,3 +12,7 @@ description = "Grounded CARE & CTRL Copilot uses Gemini for source-bound healthc
 [db.tables.hospital_members]
 read = "own"
 write = "own"
+
+[db.tables.user_feedback]
+read = "own"
+write = "own"

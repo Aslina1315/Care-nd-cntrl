@@ -62,6 +62,7 @@ Rules: preserve only facts present in the file; leave unavailable values empty. 
   const src=await db.query("INSERT INTO data_sources(name,source_type,status,last_seen_at,freshness_seconds,provenance) VALUES($1,'document_upload','imported',now(),0,$2) RETURNING id,name,status,last_seen_at,provenance",
     [fileName,"User-uploaded healthcare file; parsed and normalized by CARE & CTRL. Original values remain source-bound; this import is an uploaded snapshot."]);
   const sourceId=src.rows[0].id;
+  await db.query("INSERT INTO patient_documents(patient_id,source_id,file_name,file_type,extracted_text,extracted_summary) VALUES(NULL,$1,$2,$3,$4,$5)",[sourceId,fileName,fileType,text.slice(0,12000),clean(parsed.summary)]);
   let created=0,updated=0,diag=0,meds=0,sigs=0,attrs=0;
 
   for(const p of (parsed.patients||[]).slice(0,1500)){
