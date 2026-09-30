@@ -69,7 +69,7 @@ finally{$("submit").disabled=false}
 };
 $("passkeyAdd").onclick=async()=>{try{await A.registerPasskey();go()}catch(e){msg(e?.message||"Passkey setup was cancelled. You can continue without it.",true)}};
 $("passkeySkip").onclick=()=>{localStorage.setItem("passkey_offer_declined","1");go()};
-$("googleBtn").onclick=async()=>{msg("");$("googleBtn").disabled=true;try{if(A.signInWithGoogle){const d=await A.signInWithGoogle();if(d?.user)go();else msg("Google sign-in could not be completed.",true)}else if(A.startLogin){const d=await A.startLogin({provider:"google"});if(d?.url)location.href=d.url;else msg("Google sign-in is enabled in the project, but its OAuth setup still needs to be completed by the project owner.",true)}else msg("Google sign-in is not available in this authentication configuration yet.",true)}catch(e){msg(e?.message||"Google sign-in could not be completed.",true)}finally{$("googleBtn").disabled=false}};$("email").focus();
+$("googleBtn").onclick=async()=>{msg("");$("googleBtn").disabled=true;try{const rr=await fetch("/api/auth/google/start?next="+encodeURIComponent(next),{redirect:"manual"});if(rr.status>=300&&rr.status<400){const loc=rr.headers.get("Location");if(loc){location.href=loc;return}}const html=await rr.text();if(/isn.?t ready yet|hasn.?t finished setting up/i.test(html)){msg("Google sign-in is not activated yet. Finish the one-time Google setup in Hatchable Settings; email sign-in is ready now.",true)}else{msg("Google sign-in could not be started. Please use email sign-in for now.",true)}}catch(e){msg("Google sign-in could not be started. Email sign-in is still available.",true)}finally{$("googleBtn").disabled=false}};$("email").focus();
 })();
 </script>
 </body>
