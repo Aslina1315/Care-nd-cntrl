@@ -67,27 +67,16 @@ function mapCsv(){
     ["obs","OBSERVED AT","Optional","observed at,observed_at,timestamp,time,date,datetime,date time,effective"]
   ];
   function norm(x){return String(x||"").toLowerCase().replace(/[{}()[\]_-]+/g," ").replace(/\s+/g," ").trim()}
-  function guess(aliases){
-    var a=aliases.split(",").map(norm);
-    var exact=S.headers.find(function(h){return a.indexOf(norm(h))>=0}); if(exact)return exact;
-    return S.headers.find(function(h){var n=norm(h);return a.some(function(x){return x.length>3&&(n.includes(x)||x.includes(n))})})||"";
-  }
-  function options(selected){
-    var groups={identity:[],clinical:[],other:[]};
-    S.headers.forEach(function(h){
-      var n=norm(h),g=/id|identifier|patient|name|birth|dob|sex|gender/.test(n)?"identity":/signal|observ|value|unit|heart|glucose|pressure|condition|diagnos|date|time|code/.test(n)?"clinical":"other";
-      groups[g].push(h);
-    });
-    return "<option value=''>— not mapped —</option>"+
-      "<optgroup label='Identity'>"+groups.identity.map(function(h){return "<option value='"+esc(h)+"' "+(h===selected?"selected":"")+">"+esc(h)+"</option>"}).join("")+"</optgroup>"+
-      "<optgroup label='Clinical / signals'>"+groups.clinical.map(function(h){return "<option value='"+esc(h)+"' "+(h===selected?"selected":"")+">"+esc(h)+"</option>"}).join("")+"</optgroup>"+
-      "<optgroup label='Other columns'>"+groups.other.map(function(h){return "<option value='"+esc(h)+"' "+(h===selected?"selected":"")+">"+esc(h)+"</option>"}).join("")+"</optgroup>";
-  }
-  var mapped=fields.map(function(x){return [x[0],x[1],x[2],guess(x[3])]});
+  function prettyHeader(h){var s=String(h||"").replace(/\{[^}]*\}/g,"").replace(/[_-]+/g," ").replace(/([a-z])([A-Z])/g,"$1 $2").replace(/\s+/g," ").trim();return s.replace(/\b(id|dob|api|fhir|hr|bp|spo2|bmi)\b/gi,function(x){return x.toUpperCase()}).replace(/\b\w/g,function(x){return x.toUpperCase()})||"Unnamed column"}
+  function scoreHeader(h,aliases){var n=norm(h),best=0;aliases.split(",").map(norm).forEach(function(x){if(!x)return;if(n===x)best=Math.max(best,100);else if(n.includes(x)||x.includes(n))best=Math.max(best,72);var xt=x.split(" ").filter(Boolean),nt=n.split(" ").filter(Boolean),hits=xt.filter(function(t){return nt.indexOf(t)>=0}).length;if(hits)best=Math.max(best,Math.round(35*hits/xt.length))});return best}
+  function guess(aliases,used){var ranked=S.headers.map(function(h){return {h:h,s:scoreHeader(h,aliases)}}).filter(function(x){return x.s>0&&!used[x.h]});ranked.sort(function(a,b){return b.s-a.s||a.h.localeCompare(b.h)});return ranked[0]?.h||""}
+  var mapped=[],used={};fields.forEach(function(x){var current=guess(x[3],used);mapped.push([x[0],x[1],x[2],x[3],current]);if(current)used[current]=true});
+  function options(x){var selected=x[4],ranked=S.headers.map(function(h){return {h:h,s:scoreHeader(h,x[3])}}).filter(function(z){return z.s>0&&(!used[z.h]||z.h===selected)});ranked.sort(function(a,b){return b.s-a.s||a.h.localeCompare(b.h)});ranked=ranked.slice(0,6);if(selected&&!ranked.some(function(z){return z.h===selected}))ranked.unshift({h:selected,s:scoreHeader(selected,x[3])});return "<option value=\"\">— not mapped —</option><optgroup label=\"Suggested columns\">"+ranked.map(function(z){var confidence=z.s>=90?"Strong match":z.s>=60?"Good match":"Possible match";return "<option value=\""+esc(z.h)+"\" "+(z.h===selected?"selected":"")+">"+esc(prettyHeader(z.h))+" · "+confidence+"</option>"}).join("")+"</optgroup>"}
   var identity=mapped.slice(0,4),signals=mapped.slice(4);
   function fieldHtml(x){
-    var required=x[2]==="Required";
-    return "<div class='csv-field "+(required?"required":"")+"'><div class='csv-field-head'><label for='m_"+x[0]+"'>"+esc(x[1])+"</label><span>"+(required?"REQUIRED":"OPTIONAL")+"</span></div><select id='m_"+x[0]+"' aria-label='"+esc(x[1])+"'>"+options(x[3])+"</select></div>";
+    var required=x[2]==="Required",selected=x[4],score=selected?scoreHeader(selected,x[3]):0;
+    var status=selected?(score>=90?"SMART MATCH":score>=60?"SUGGESTED":"REVIEW"):"NOT MAPPED";
+    return "<div class=\"csv-field "+(required?"required":"")+"\"><div class=\"csv-field-head\"><label for=\"m_"+x[0]+"\">"+esc(x[1])+"</label><span class=\""+(selected?"mapped":"unmapped")+"\">"+status+"</span></div><select id=\"m_"+x[0]+"\">"+options(x)+"</select>"+(selected?"<small class=\"csv-match\"><b>CSV:</b> "+esc(prettyHeader(selected))+"</small>":"<small class=\"csv-match\">Choose a column if your file contains this field.</small>")+"</div>";
   }
   var preview=S.rows.slice(0,4).map(function(r){return "<tr>"+S.headers.slice(0,Math.min(5,S.headers.length)).map(function(_,i){return "<td>"+esc(r[i]??"")+"</td>"}).join("")+"</tr>"}).join("");
   var heads=S.headers.slice(0,Math.min(5,S.headers.length)).map(function(h){return "<th>"+esc(h)+"</th>"}).join("");
