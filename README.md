@@ -1,14 +1,63 @@
+# CARE & CTRL
 
-### One important thing 🔥
+### See earlier. Decide smarter.
 
-I intentionally **didn't write fake claims like “first in the world”, “100% accurate”, “predicts disease with X% accuracy”, “real-time hospital data everywhere”**, etc. That's actually better for your hackathon README because a technical judge can inspect the repo and the claims will line up with what the product actually does.
+CARE & CTRL is an AI-powered healthcare decision-support platform that connects patient health data, population-level signals, healthcare facility operations, resource availability, and human-approved actions in one connected system.
 
-Also, the Hatchable-specific architecture section is factual: Hatchable documents that `api/*.js` becomes routes, `migrations/*.sql` define the schema, and `public/*` serves static assets; it also provides a per-project PostgreSQL database. :contentReference[oaicite:2]{index=2}
+The platform is designed around a simple idea:
 
-**Before you paste it:** replace only these 4 placeholders:
-- `[YOUR TEAM NAME]`
-- member names
-- demo video link
-- PPT/architecture links
+> **Healthcare teams should be able to see emerging signals earlier and make better-informed operational decisions before problems become critical.**
 
-And **don't put any API keys or `.env` contents in GitHub.**
+---
+
+## 🌐 Live Demo
+
+**CARE & CTRL:**  
+https://care-ctrl.hatchable.site
+
+**Source Code:**  
+This repository
+
+---
+
+## 🧩 The Problem
+
+Healthcare information is often fragmented across different systems.
+
+Patient records, physiological signals, population trends, healthcare facility capacity, and medical resource availability may exist separately.
+
+This creates a gap between:
+
+- What is happening to individual patients
+- What is happening across a population
+- What healthcare facilities may need next
+- What operational action should be considered
+
+CARE & CTRL addresses this gap by connecting these layers into a unified decision-support workflow.
+
+---
+
+# 💡 Our Approach
+
+CARE & CTRL connects healthcare intelligence through the following loop:
+
+```text
+Data
+  ↓
+Patient Digital Twin
+  ↓
+Risk & Signal Intelligence
+  ↓
+Population Trends
+  ↓
+Facility / PHC Pressure
+  ↓
+Resource Forecast
+  ↓
+Action Options
+  ↓
+What-if Simulation
+  ↓
+Human Approval
+  ↓
+Outcome & Audit
