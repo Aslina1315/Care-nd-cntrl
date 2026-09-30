@@ -1,13 +1,12 @@
 import { db } from "hatchable";
 
-export const access = "public";
+export const access = "user";
 export const methods = ["GET"];
 
 export default async function (req, res) {
   const patientResult = await db.query("SELECT count(*)::int AS count FROM patients WHERE status = 'active'");
   const sourceResult = await db.query("SELECT count(*)::int AS count FROM data_sources WHERE status = 'connected'");
   const actionResult = await db.query("SELECT count(*)::int AS count FROM action_queue WHERE status = 'pending'");
-
   res.json({
     patients_needing_attention: 0,
     active_patients: patientResult.rows[0]?.count ?? 0,
