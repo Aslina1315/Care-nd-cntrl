@@ -233,11 +233,11 @@ async function workspace(){
     "<div class='workspace-mark'>⌂</div><p class='eyebrow'>CARE & CTRL · WORKSPACE</p>"+
     "<h2>"+(existing?"Choose how to enter CARE & CTRL":"Set up your hospital workspace")+"</h2>"+
     "<p>"+(existing?"Your hospital data stays inside its workspace. Choose the workspace for this session, or enter Demo Mode for judging and source exploration.":"A workspace keeps your hospital's patients, sources, actions and audit trail together. For a hackathon demo, you can continue without one.")+"</p>"+
-    (existing?"<div class='current-workspace'><span class='workspace-status'></span><div><small>AVAILABLE WORKSPACE</small><b>"+esc(existing.name)+"</b><span>"+esc([existing.city,existing.state].filter(Boolean).join(", ")||"Hospital workspace")+" · "+esc(existing.role||"staff")+"</span></div></div>":"<div class='workspace-benefits'><span>✓ Patient data stays scoped</span><span>✓ Actions & audit stay together</span><span>✓ Sources belong to the hospital</span></div>")+
+    (existing?"<div class='current-workspace'><div class='workspace-status'></div><div><small>AVAILABLE WORKSPACE</small><b>"+esc(existing.name)+"</b><span>"+esc([existing.city,existing.state].filter(Boolean).join(", ")||"Hospital workspace")+" · "+esc(existing.role||"staff")+"</span></div><em>READY</em></div>":"<div class='workspace-benefits'><div><b>01</b><span>Patient data stays scoped to your organisation.</span></div><div><b>02</b><span>Actions, sources and audit stay together.</span></div><div><b>03</b><span>Demo Mode remains clearly separated.</span></div></div>")+
     "<div class='workspace-choice-actions'>"+
-      (existing?"<button type='button' class='button primary' id='enterWorkspace'>Enter "+esc(existing.name)+" →</button>":"")+
-      "<button type='button' class='button' id='continueDemo'>Continue without workspace</button>"+
-      "<button type='button' class='workspace-link' id='newWorkspace'>"+(existing?"Create another workspace":"Create workspace")+" </button>"+
+      (existing?"<button type='button' class='workspace-action primary' id='enterWorkspace'><span>ENTER WORKSPACE</span><b>"+esc(existing.name)+"</b><small>Use this hospital workspace</small><i>→</i></button>":"")+
+      "<button type='button' class='workspace-action secondary' id='continueDemo'><span>DEMO MODE</span><b>Explore CARE & CTRL</b><small>Use clearly labelled simulated data</small><i>→</i></button>"+
+      "<button type='button' class='workspace-action tertiary' id='newWorkspace'><span>"+(existing?"NEW WORKSPACE":"CREATE WORKSPACE")+"</span><b>"+(existing?"Add another organisation":"Set up your hospital")+"</b><small>Keep your data in its own workspace</small><i>→</i></button>"+
     "</div>"+
     "<form id='setup' hidden><div class='form-grid'><div class='field'><label>ORGANISATION / HOSPITAL</label><input name='name' required placeholder='City Care Hospital'></div><div class='field'><label>CITY</label><input name='city' placeholder='Chennai'></div><div class='field'><label>STATE</label><input name='state' placeholder='Tamil Nadu'></div></div><div class='modal-actions'><button type='button' class='button' id='cancelSetup'>Back</button><button class='button primary'>Create workspace</button></div></form>"+
     "</div></div>";
@@ -246,9 +246,23 @@ async function workspace(){
     modal.remove();
     S.demoMode=mode==="demo";
     S.workspaceReady=mode==="workspace";
-    S.externalMode=true;
-    if(S.demoMode){toast("Demo Mode","Synthetic clinical + operational data is loading for the judge walkthrough.");S.view="explorer";loadDemoOps().then(render);return}
-    S.view="explorer";render();
+    S.externalMode=mode!=="workspace";
+    if(S.demoMode){
+      S.selectedSource=null;
+      toast("Demo Mode","Synthetic clinical + operational data is loading for the judge walkthrough.");
+      S.view="explorer";
+      loadDemoOps().then(render);
+      return;
+    }
+    if(mode==="workspace"){
+      S.selectedSource=null;
+      S.patients=[];
+      S.view="home";
+      loadOverview().then(render);
+      return;
+    }
+    S.view="explorer";
+    render();
   }
   if(enter)enter.onclick=function(){closeWorkspace("workspace")};
   demo.onclick=function(){closeWorkspace("demo")};
