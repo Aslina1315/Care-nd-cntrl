@@ -862,28 +862,8 @@ See the `LICENSE` file for the complete license text.
 |---|---|
 | 🌐 Live Demo | https://care-ctrl.hatchable.site |
 | 💻 GitHub Repository | This repository |
-| 🎥 Demo Video | ADD UNLISTED YOUTUBE LINK |
-| 📄 Pitch PDF | ADD PRESENTATION PDF LINK |
-| 📊 Pitch PPT | ADD PRESENTATION PPT LINK |
-| 🏗️ Architecture | ADD ARCHITECTURE PDF/PPT LINK |
-
----
-
-# 🏆 Submission Checklist
-
-- [x] Team details
-- [x] College / institution information
-- [x] Project title
-- [x] Problem statement
-- [x] Healthcare use case
-- [x] Technical stack
-- [x] AI / ML framework details
-- [ ] 15–20 minute unlisted YouTube demo video
-- [x] Open-source license information
-- [ ] Architecture diagram PDF/PPT
-- [ ] Project presentation PDF/PPT
-- [x] Public GitHub repository
-- [ ] All required links publicly accessible
+| 🎥 Project description | https://drive.google.com/file/d/1ifZ4L7SAWQjpaJtJAaq5E8TWm-zTMm8h/view?usp=drive_link |
+| 📊 Pitch PPT | https://docs.google.com/presentation/d/18ucj1TbIWBYQZaghxQAxF-4-Rz3Coh35/edit?usp=drive_link&ouid=109058616103865686110&rtpof=true&sd=true|
 
 ---
 
