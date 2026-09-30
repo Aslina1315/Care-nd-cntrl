@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS patient_signals (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), patient_id UUID NOT NULL REFERENCES patients(id) ON DELETE CASCADE, signal_type TEXT NOT NULL, value_numeric DOUBLE PRECISION, unit TEXT, observed_at TIMESTAMPTZ NOT NULL, source_id UUID, quality TEXT NOT NULL DEFAULT 'unknown', created_at TIMESTAMPTZ NOT NULL DEFAULT now());

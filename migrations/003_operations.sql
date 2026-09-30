@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS data_sources (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), name TEXT NOT NULL, source_type TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'unknown', last_seen_at TIMESTAMPTZ, freshness_seconds INTEGER, provenance TEXT, created_at TIMESTAMPTZ NOT NULL DEFAULT now());

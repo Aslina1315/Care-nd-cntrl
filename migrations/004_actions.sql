@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS action_queue (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), action_type TEXT NOT NULL, target_type TEXT NOT NULL, target_id UUID, rationale TEXT NOT NULL, expected_impact TEXT, status TEXT NOT NULL DEFAULT 'pending', proposed_at TIMESTAMPTZ NOT NULL DEFAULT now(), approved_at TIMESTAMPTZ, approved_by TEXT);

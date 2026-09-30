@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS patients (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), external_ref TEXT UNIQUE NOT NULL, display_name TEXT NOT NULL, date_of_birth DATE, sex TEXT, status TEXT NOT NULL DEFAULT 'active', created_at TIMESTAMPTZ NOT NULL DEFAULT now(), updated_at TIMESTAMPTZ NOT NULL DEFAULT now());
