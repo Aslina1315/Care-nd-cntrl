@@ -62,7 +62,7 @@ export default async function(req,res){
     if(privateHost) return res.status(400).json({error:"Private or local FHIR endpoints are not allowed through the hosted connector"});
     const base=u.toString().replace(/\/$/,"");
     const types=["Patient","Observation","Condition","Encounter"];
-    const results=await Promise.allSettled(types.map(t=>fetchBundle(base,t,t==="Patient"?50:500)));
+    const results=await Promise.allSettled(types.map(t=>fetchBundle(base,t,t==="Patient"?100:1000)));
     const by={observations:{},conditions:{},encounters:{}};
     const counts={Patient:0,Observation:0,Condition:0,Encounter:0};
     const failures=[];
