@@ -48,15 +48,28 @@
 </main></div>
 <div id="modalRoot"></div>
 <div class="copilot-dock" id="copilotDock" aria-live="polite">
-  <button class="copilot-bubble" id="copilotBubble" aria-label="Open CARE & CTRL Copilot"><span class="copilot-spark">✦</span><span><b>CARE & CTRL Copilot</b><small>Ask from your connected data</small></span><i>AI</i></button>
+  <button class="copilot-bubble" id="copilotBubble" aria-label="Open CARE & CTRL Copilot"><span class="copilot-spark">✦</span><span><b>CARE & CTRL Copilot</b><small>Ask, analyse, or control the workspace</small></span><i>AI</i></button>
   <section class="copilot-popover" id="copilotPopover" hidden>
-    <div class="copilot-pop-head"><div><span class="eyebrow">CARE & CTRL COPILOT</span><h3>Need help reading the data?</h3><p>Grounded in the current workspace. It won't invent missing evidence.</p></div><button class="copilot-close" id="copilotClose" aria-label="Close Copilot">×</button></div>
-    <div class="copilot-prompts">
+    <div class="copilot-pop-head">
+      <div><span class="eyebrow">CARE & CTRL COPILOT</span><h3>What can I do for you?</h3><p>Ask naturally. I can read the connected evidence and control safe parts of this workspace.</p></div>
+      <button class="copilot-close" id="copilotClose" aria-label="Close Copilot">×</button>
+    </div>
+    <div class="copilot-chat" id="copilotChat" aria-live="polite">
+      <div class="copilot-welcome"><span class="copilot-welcome-icon">✦</span><div><b>I'm ready.</b><p>Try “Show my patients”, “Go to resources”, or ask a question about the connected data.</p></div></div>
+    </div>
+    <div class="copilot-composer">
+      <textarea id="copilotInput" rows="2" placeholder="Ask CARE & CTRL anything…" aria-label="Message CARE & CTRL Copilot"></textarea>
+      <div class="copilot-compose-row">
+        <button class="copilot-mic" id="copilotMic" type="button" aria-label="Talk to Copilot">🎙 <span>Talk</span></button>
+        <span class="copilot-mic-status" id="copilotMicStatus">Voice input ready</span>
+        <button class="copilot-send" id="copilotSend" type="button">Send <span>→</span></button>
+      </div>
+    </div>
+    <div class="copilot-suggestions">
       <button data-dock-prompt="attention">What needs attention?</button>
       <button data-dock-prompt="patterns">What patterns do you see?</button>
-      <button data-dock-prompt="summary">Summarise this dataset</button>
+      <button data-dock-prompt="summary">Summarise this page</button>
     </div>
-    <div class="copilot-dock-answer" id="copilotDockAnswer"><span>✦</span><b>Copilot is ready.</b><small>Choose a question above.</small></div>
   </section>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.8.0/mammoth.browser.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.0.4/tesseract.min.js"></script><script src="/app.js"></script>

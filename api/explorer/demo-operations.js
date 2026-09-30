@@ -18,14 +18,16 @@ const resourceNames=[
 const resources=[];
 facilities.forEach((f,fi)=>resourceNames.forEach((r,ri)=>{
  const factor=fi===2?0.55:(fi===4?0.72:1);
- const available=Math.max(3,Math.round(r[2]*factor+(ri%3)*3));
- const daily=Math.max(1,Math.round(r[3]*(fi===2?1.35:fi===4?1.15:1)));
+ let available=Math.max(3,Math.round(r[2]*factor+(ri%3)*3));
+ let daily=Math.max(1,Math.round(r[3]*(fi===2?1.35:fi===4?1.15:1)));
+ if(fi===0&&ri===0){available=108;daily=14;}
+ if(fi===2&&ri===0){available=82;daily=19;}
  const reorder=r[4];
  resources.push({id:"demo-res-"+fi+"-"+ri,facility_id:f.id,facility_name:f.name,resource_name:r[0],unit:r[1],quantity_available:available,average_daily_use:daily,reorder_level:reorder,days_to_reorder:Math.max(0,(available-reorder)/daily),observed_at:new Date(Date.now()-((fi+ri)%5)*3600000).toISOString()});
 }));
 
 const actions=[
- {id:"demo-action-01",action_type:"Redistribute IV fluids",target_type:"facility",target_id:"demo-phc-03",rationale:"Central Community Clinic is projected to cross its reorder threshold in 1.7 days while North River PHC has transferable stock.",expected_impact:"Move 24 bags and preserve approximately 2.4 days of local headroom.",status:"pending"},
+ {id:"demo-action-01",action_type:"Redistribute IV fluids",target_type:"facility",target_id:"demo-phc-03",rationale:"Central Community Clinic is projected to cross its reorder threshold in about 1.7 days while North River PHC has transferable stock above its reorder threshold.",expected_impact:"Move 24 bags and leave North River PHC with about 2.4 days of headroom above its reorder threshold.",status:"pending"},
  {id:"demo-action-02",action_type:"Rebalance oxygen cylinders",target_type:"facility",target_id:"demo-phc-03",rationale:"Observed oxygen use is above the recent baseline and available stock is approaching the operational threshold.",expected_impact:"Add 4 cylinders and reduce immediate stock-out exposure.",status:"pending"},
  {id:"demo-action-03",action_type:"Schedule replenishment",target_type:"resource",target_id:"demo-res-2-3",rationale:"Insulin inventory is below the reorder threshold in the simulated central facility.",expected_impact:"Trigger replenishment before the projected threshold date.",status:"pending"},
  {id:"demo-action-04",action_type:"Review respiratory cohort",target_type:"population",target_id:"demo-cohort-respiratory",rationale:"The synthetic clinical stream shows a concentration of respiratory-related observations that merits human review.",expected_impact:"Confirm whether the signal represents a meaningful local pattern.",status:"pending"},

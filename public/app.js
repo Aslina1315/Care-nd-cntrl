@@ -279,22 +279,98 @@ async function workspace(){
 }
 async function refreshExternalSource(){if(!S.externalMode||!S.selectedSource)return;try{var d;if(S.selectedSource.type==="LIVE FHIR"&&S.selectedSource.endpoint){d=await api("/explorer/fhir-live?endpoint="+encodeURIComponent(S.selectedSource.endpoint))}else if(S.selectedSource.id==="hapi-r4"){d=await api("/explorer/fhir-patients?count=50")}else{return}S.patients=d.patients||[];S.selectedSource.freshness="Fetched "+new Date(d.fetched_at||Date.now()).toLocaleTimeString("en-IN");if(d.resource_counts)S.selectedSource.resource_counts=d.resource_counts;if(d.unavailable_resources)S.selectedSource.unavailable_resources=d.unavailable_resources;S.selectedSource.accessState="CONNECTED";if(S.view==="patients"||S.view==="home"||S.view==="data")await render();$("#dataState").textContent="SOURCE SYNCED · "+new Date().toLocaleTimeString("en-IN")}catch(e){S.selectedSource.accessState="STALE / ACCESS ERROR";$("#dataState").textContent="SOURCE STALE"}} 
 async function boot(){await workspace();await loadOverview();await render();setInterval(function(){if(document.visibilityState==="visible"){loadOverview();refreshExternalSource()}},90000)}
-async function dockCopilotAsk(kind){
-  var q=kind==="attention"?"What needs attention in this connected healthcare dataset?":kind==="patterns"?"What patterns are visible in the connected healthcare dataset?":"Summarise the connected healthcare dataset and its evidence state.";
-  var answer=$("#copilotDockAnswer");answer.innerHTML="<span class='dock-thinking'>✦</span><b>Reading verified context…</b><small>CARE & CTRL Copilot is grounding the answer in the current source.</small>";
+function copilotAddMessage(role,text){
+  var chat=$("#copilotChat");if(!chat)return;
+  var el=document.createElement("div");el.className="copilot-msg "+role;
+  el.innerHTML=role==="user"?"<span class='copilot-msg-role'>YOU</span><p>"+esc(text)+"</p>":"<span class='copilot-msg-role'>CARE & CTRL AI</span><p>"+esc(text)+"</p><button class='copilot-speak' type='button' data-speak='"+esc(text)+"' title='Read this answer aloud'>🔊 Listen</button>";
+  chat.appendChild(el);chat.scrollTop=chat.scrollHeight;
+}
+function copilotContext(){
+  return {
+    current_view:S.view,
+    current_view_title:titles[S.view]||S.view,
+    demo_mode:S.demoMode,
+    workspace_ready:S.workspaceReady,
+    source:S.selectedSource||null,
+    patients:S.patients.slice(0,80),
+    workspace:S.overview||{},
+    available_views:Object.keys(titles),
+    available_patients:S.patients.slice(0,80).map(function(p){return {id:p.id,name:p.display_name,external_ref:p.external_ref}}),
+    generated_at:new Date().toISOString()
+  };
+}
+async function executeCopilotAction(action){
+  if(!action||!action.type||action.type==="none")return;
+  if(action.type==="navigate"){
+    var v=String(action.target||"");
+    if(!titles[v])return;
+    S.view=v;S.selected=null;await render();toast("Copilot","Opened "+titles[v]+".");return;
+  }
+  if(action.type==="refresh"){
+    await loadOverview();await refreshExternalSource();await render();toast("Copilot","Workspace data refreshed.");return;
+  }
+  if(action.type==="open_source"){
+    S.view="explorer";S.selected=null;await render();toast("Copilot","Opened Hospital & Data Explorer.");return;
+  }
+  if(action.type==="open_patient"){
+    var target=String(action.target||"");
+    var p=S.patients.find(function(x){return String(x.id)===target});
+    if(!p)return;
+    S.view="patients";S.selected=p.id;await render();toast("Copilot","Opened "+(p.display_name||"patient")+" profile.");return;
+  }
+  if(action.type==="scroll_top"){window.scrollTo({top:0,behavior:"smooth"});}
+}
+async function sendCopilotMessage(question){
+  question=String(question||"").trim();if(!question)return;
+  var input=$("#copilotInput"),send=$("#copilotSend");
+  copilotAddMessage("user",question);
+  if(input)input.value="";
+  if(send){send.disabled=true;send.innerHTML="Thinking <span>…</span>";}
+  var typing=$("#copilotChat");if(typing){var t=document.createElement("div");t.className="copilot-msg ai copilot-thinking";t.id="copilotThinking";t.innerHTML="<span class='copilot-msg-role'>CARE & CTRL AI</span><p>Reading the current workspace…</p>";typing.appendChild(t);typing.scrollTop=typing.scrollHeight}
   try{
-    var ctx={source:S.selectedSource||null,patients:S.patients.slice(0,80),workspace:S.overview||{},generated_at:new Date().toISOString()};
-    var out=await api("/copilot/ask",{method:"POST",body:JSON.stringify({question:q,context:ctx})});
-    answer.innerHTML="<span class='dock-ai'>AI</span><b>Grounded analysis</b><p>"+esc(out.answer)+"</p><small>Source-bound · "+new Date().toLocaleTimeString("en-IN")+"</small>";
-  }catch(e){answer.innerHTML="<span class='dock-warn'>!</span><b>Copilot unavailable</b><small>"+esc(e.message)+"</small>"}
+    var out=await api("/copilot/ask",{method:"POST",body:JSON.stringify({question:question,context:copilotContext()})});
+    $("#copilotThinking")?.remove();
+    copilotAddMessage("ai",out.answer||"I couldn't produce a grounded answer.");
+    if(out.action&&out.action.type&&out.action.type!=="none"){
+      await executeCopilotAction(out.action);
+      copilotAddMessage("system","✓ "+(out.action.label||"Workspace action completed."));
+    }
+    S.copilotLastAnswer=out.answer||"";
+  }catch(e){
+    $("#copilotThinking")?.remove();
+    copilotAddMessage("ai","I couldn't complete that request: "+e.message);
+  }finally{
+    if(send){send.disabled=false;send.innerHTML="Send <span>→</span>";}
+  }
 }
 function initCopilotDock(){
-  var dock=$("#copilotDock"),bubble=$("#copilotBubble"),pop=$("#copilotPopover"),close=$("#copilotClose");
+  var dock=$("#copilotDock"),bubble=$("#copilotBubble"),pop=$("#copilotPopover"),close=$("#copilotClose"),input=$("#copilotInput"),send=$("#copilotSend"),mic=$("#copilotMic"),status=$("#copilotMicStatus");
   if(!dock||dock.dataset.ready)return;
   dock.dataset.ready="1";
-  bubble.onclick=function(){pop.hidden=false;dock.classList.add("open")};
+  bubble.onclick=function(){pop.hidden=false;dock.classList.add("open");setTimeout(function(){input?.focus()},80)};
   close.onclick=function(){pop.hidden=true;dock.classList.remove("open");dock.classList.add("cooldown");setTimeout(function(){dock.classList.remove("cooldown")},5000)};
-  dock.querySelectorAll("[data-dock-prompt]").forEach(function(b){b.onclick=function(){dockCopilotAsk(b.dataset.dockPrompt)}});
+  send.onclick=function(){sendCopilotMessage(input?.value||"")};
+  input.onkeydown=function(e){if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendCopilotMessage(input.value)}};
+  dock.querySelectorAll("[data-dock-prompt]").forEach(function(b){
+    b.onclick=function(){sendCopilotMessage(b.dataset.dockPrompt==="attention"?"What needs attention?":b.dataset.dockPrompt==="patterns"?"What patterns do you see?":"Summarise this page.");};
+  });
+  var chat=$("#copilotChat");
+  if(chat)chat.addEventListener("click",function(e){
+    var b=e.target.closest("[data-speak]");if(!b)return;
+    if("speechSynthesis" in window){window.speechSynthesis.cancel();var u=new SpeechSynthesisUtterance(b.dataset.speak);u.lang="en-IN";window.speechSynthesis.speak(u);}
+  });
+  var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){if(status)status.textContent="Voice input unavailable in this browser";if(mic){mic.disabled=true;mic.title="Use Chrome/Edge for voice input"}return}
+  var rec=new SR();rec.lang="en-IN";rec.interimResults=true;rec.continuous=false;
+  var listening=false;
+  rec.onstart=function(){listening=true;mic.classList.add("listening");if(status)status.textContent="Listening… speak naturally"};
+  rec.onresult=function(e){
+    var text="";for(var i=e.resultIndex;i<e.results.length;i++)text+=e.results[i][0].transcript;
+    if(input)input.value=text;
+  };
+  rec.onerror=function(e){if(status)status.textContent=e.error==="not-allowed"?"Microphone permission is blocked":"Voice input error — try again"};
+  rec.onend=function(){listening=false;mic.classList.remove("listening");if(status)status.textContent="Voice input ready"};
+  mic.onclick=function(){if(listening){rec.stop();return}try{rec.start()}catch(e){}};
 }
 $("#menuBtn").onclick=function(){$("#sidebar").classList.toggle("open")};
 initCopilotDock();$("#refreshBtn").onclick=function(){loadOverview();render();toast("Refreshing","Checking the latest workspace state.")};$("#signoutBtn").onclick=async function(){try{await window.hatchable.auth?.signOut()}finally{location.replace("/login")}};
