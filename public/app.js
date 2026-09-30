@@ -56,46 +56,140 @@ function sourceInfo(s){if(!s)return;$("#modalRoot").innerHTML="<div class='modal
 function parseCsv(t){var out=[],row=[],cell="",q=false;for(var i=0;i<t.length;i++){var c=t[i],n=t[i+1];if(c==='"'&&q&&n==='"'){cell+='"';i++;continue}if(c==='"'){q=!q;continue}if(c===","&&!q){row.push(cell);cell="";continue}if((c==="\n"||c==="\r")&&!q){if(c==="\r"&&n==="\n")i++;row.push(cell);if(row.some(function(x){return x.trim()}))out.push(row);row=[];cell="";continue}cell+=c}if(cell||row.length){row.push(cell);out.push(row)}return out}
 function handleCsv(e){var f=e.target.files?.[0];if(!f)return;var r=new FileReader();r.onload=function(){var p=parseCsv(String(r.result||""));S.file=f;S.headers=p[0]||[];S.rows=p.slice(1).filter(function(x){return x.some(function(y){return y.trim()})});mapCsv()};r.readAsText(f)}
 function mapCsv(){
+  var headers=S.headers.slice();
+  var rows=S.rows.slice();
   var fields=[
-    ["ref","PATIENT REFERENCE","Required","id,patient_id,patient id,identifier,reference,patient reference,external_ref,external ref"],
-    ["name","DISPLAY NAME","Required","name,patient name,display name,patient,patient_name,humanname"],
-    ["dob","DATE OF BIRTH","Optional","dob,date of birth,birthdate,birth date,date_of_birth"],
-    ["sex","SEX","Optional","sex,gender"],
-    ["type","SIGNAL TYPE","Optional","signal type,signal_type,observation,observation type,measurement,type,code"],
-    ["value","SIGNAL VALUE","Optional","signal value,signal_value,value,value numeric,value_numeric,measurement value"],
-    ["unit","SIGNAL UNIT","Optional","signal unit,signal_unit,unit,units"],
-    ["obs","OBSERVED AT","Optional","observed at,observed_at,timestamp,time,date,datetime,date time,effective"]
+    ["ref","PATIENT REFERENCE","id,patient_id,patient id,identifier,patient identifier,medical record,mrn,external_ref,external ref"],
+    ["name","DISPLAY NAME","name,patient name,display name,full name,patient_name,humanname,given name,family name"],
+    ["dob","DATE OF BIRTH","dob,date of birth,birthdate,birth date,date_of_birth"],
+    ["sex","SEX / GENDER","sex,gender"],
+    ["status","STATUS","active,status,patient status"],
   ];
-  function norm(x){return String(x||"").toLowerCase().replace(/[{}()[\]_-]+/g," ").replace(/\s+/g," ").trim()}
-  function prettyHeader(h){var s=String(h||"").replace(/\{[^}]*\}/g,"").replace(/[_-]+/g," ").replace(/([a-z])([A-Z])/g,"$1 $2").replace(/\s+/g," ").trim();return s.replace(/\b(id|dob|api|fhir|hr|bp|spo2|bmi)\b/gi,function(x){return x.toUpperCase()}).replace(/\b\w/g,function(x){return x.toUpperCase()})||"Unnamed column"}
-  function scoreHeader(h,aliases){var n=norm(h),best=0;aliases.split(",").map(norm).forEach(function(x){if(!x)return;if(n===x)best=Math.max(best,100);else if(n.includes(x)||x.includes(n))best=Math.max(best,72);var xt=x.split(" ").filter(Boolean),nt=n.split(" ").filter(Boolean),hits=xt.filter(function(t){return nt.indexOf(t)>=0}).length;if(hits)best=Math.max(best,Math.round(35*hits/xt.length))});return best}
-  function guess(aliases,used){var ranked=S.headers.map(function(h){return {h:h,s:scoreHeader(h,aliases)}}).filter(function(x){return x.s>0&&!used[x.h]});ranked.sort(function(a,b){return b.s-a.s||a.h.localeCompare(b.h)});return ranked[0]?.h||""}
-  var mapped=[],used={};fields.forEach(function(x){var current=guess(x[3],used);mapped.push([x[0],x[1],x[2],x[3],current]);if(current)used[current]=true});
-  function options(x){var selected=x[4],ranked=S.headers.map(function(h){return {h:h,s:scoreHeader(h,x[3])}}).filter(function(z){return z.s>0&&(!used[z.h]||z.h===selected)});ranked.sort(function(a,b){return b.s-a.s||a.h.localeCompare(b.h)});ranked=ranked.slice(0,6);if(selected&&!ranked.some(function(z){return z.h===selected}))ranked.unshift({h:selected,s:scoreHeader(selected,x[3])});return "<option value=\"\">— not mapped —</option><optgroup label=\"Suggested columns\">"+ranked.map(function(z){var confidence=z.s>=90?"Strong match":z.s>=60?"Good match":"Possible match";return "<option value=\""+esc(z.h)+"\" "+(z.h===selected?"selected":"")+">"+esc(prettyHeader(z.h))+" · "+confidence+"</option>"}).join("")+"</optgroup>"}
-  var identity=mapped.slice(0,4),signals=mapped.slice(4);
-  function fieldHtml(x){
-    var required=x[2]==="Required",selected=x[4],score=selected?scoreHeader(selected,x[3]):0;
-    var status=selected?(score>=90?"SMART MATCH":score>=60?"SUGGESTED":"REVIEW"):"NOT MAPPED";
-    return "<div class=\"csv-field "+(required?"required":"")+"\"><div class=\"csv-field-head\"><label for=\"m_"+x[0]+"\">"+esc(x[1])+"</label><span class=\""+(selected?"mapped":"unmapped")+"\">"+status+"</span></div><select id=\"m_"+x[0]+"\">"+options(x)+"</select>"+(selected?"<small class=\"csv-match\"><b>CSV:</b> "+esc(prettyHeader(selected))+"</small>":"<small class=\"csv-match\">Choose a column if your file contains this field.</small>")+"</div>";
+  function norm(x){return String(x||"").toLowerCase().replace(/\{[^}]*\}/g,"").replace(/[_{}()[\]-]+/g," ").replace(/\s+/g," ").trim()}
+  function pretty(h){var s=String(h||"").replace(/\{[^}]*\}/g,"").replace(/[_-]+/g," ").replace(/([a-z])([A-Z])/g,"$1 $2").replace(/\s+/g," ").trim();return s.replace(/\b(id|dob|api|fhir|hr|bp|spo2|bmi)\b/gi,function(x){return x.toUpperCase()}).replace(/\b\w/g,function(x){return x.toUpperCase()})||"Unnamed field"}
+  function score(h,aliases){var n=norm(h),best=0;aliases.split(",").map(norm).forEach(function(x){if(!x)return;if(n===x)best=Math.max(best,100);else if(n.includes(x)||x.includes(n))best=Math.max(best,78);var a=x.split(" ").filter(Boolean),b=n.split(" ").filter(Boolean),hits=a.filter(function(t){return b.indexOf(t)>=0}).length;if(hits)best=Math.max(best,Math.round(42*hits/a.length))});return best}
+  function bestField(aliases,used){var a=headers.map(function(h){return {h:h,s:score(h,aliases)}}).filter(function(x){return x.s>0&&!used[x.h]});a.sort(function(x,y){return y.s-x.s||x.h.localeCompare(y.h)});return a[0]?.h||""}
+  function nonEmptyValues(h){return rows.map(function(r){return String(r[headers.indexOf(h)]??"").trim()}).filter(Boolean).slice(0,80)}
+  function numericRatio(h){var a=nonEmptyValues(h);if(!a.length)return 0;return a.filter(function(v){return Number.isFinite(Number(v.replace(/,/g,"").replace(/%$/,""))) }).length/a.length}
+  function signalType(h){
+    var n=norm(h);
+    var known=[
+      [/heart rate|pulse|bpm/,"Heart rate"],
+      [/glucose|blood sugar|blood glucose/,"Glucose"],
+      [/spo2|oxygen saturation|o2 saturation/,"SpO₂"],
+      [/temperature|temp/,"Temperature"],
+      [/respiratory rate|resp rate|breathing rate/,"Respiratory rate"],
+      [/systolic|sbp/,"Blood pressure systolic"],
+      [/diastolic|dbp/,"Blood pressure diastolic"],
+      [/blood pressure|^bp$/,"Blood pressure"],
+      [/hrv|heart rate variability/,"HRV"],
+      [/steps|step count/,"Steps"],
+      [/sleep|sleep duration/,"Sleep duration"],
+      [/weight|body weight/,"Weight"],
+      [/height|body height/,"Height"],
+      [/bmi/,"BMI"],
+      [/stress/,"Stress score"]
+    ];
+    for(var i=0;i<known.length;i++)if(known[i][0].test(n))return known[i][1];
+    return "";
   }
-  var preview=S.rows.slice(0,4).map(function(r){return "<tr>"+S.headers.slice(0,Math.min(5,S.headers.length)).map(function(_,i){return "<td>"+esc(r[i]??"")+"</td>"}).join("")+"</tr>"}).join("");
-  var heads=S.headers.slice(0,Math.min(5,S.headers.length)).map(function(h){return "<th>"+esc(h)+"</th>"}).join("");
-  $("#csvStatus").innerHTML="<div class='csv-wizard'>"+
-    "<div class='csv-wizard-head'><div><p class='eyebrow'>CSV IMPORT WIZARD</p><h2>Map your healthcare data</h2><p>We detected <b>"+S.rows.length+"</b> rows and <b>"+S.headers.length+"</b> columns. CARE & CTRL has suggested mappings below. Review them before import.</p></div><span class='source-badge sim'>IMPORTED SNAPSHOT</span></div>"+
-    "<div class='csv-steps'><span class='done'>1 File loaded</span><span class='active'>2 Map columns</span><span>3 Validate</span><span>4 Import</span></div>"+
-    "<div class='csv-section'><div class='csv-section-title'><div><b>Patient identity</b><small>How CARE & CTRL identifies each patient</small></div><span>4 fields</span></div><div class='mapping'>"+identity.map(fieldHtml).join("")+"</div></div>"+
-    "<div class='csv-section'><div class='csv-section-title'><div><b>Clinical signals</b><small>Optional measurements and timestamps attached to the patient</small></div><span>4 fields</span></div><div class='mapping'>"+signals.map(fieldHtml).join("")+"</div></div>"+
-    "<div class='csv-section csv-preview'><div class='csv-section-title'><div><b>Data preview</b><small>First 4 rows · first 5 columns</small></div><span>"+S.rows.length+" total rows</span></div><div class='preview'><table><thead><tr>"+heads+"</tr></thead><tbody>"+preview+"</tbody></table></div></div>"+
-    "<div class='csv-actions'><div><b>Ready to validate?</b><small>Required: Patient Reference + Display Name</small></div><button class='button primary' id='importBtn'>Validate & import →</button></div>"+
+  var used={},core={};
+  fields.forEach(function(f){core[f[0]]=bestField(f[2],used);if(core[f[0]])used[core[f[0]]]=true});
+  var timestamp=headers.find(function(h){return /observed|timestamp|effective|datetime|date time|measurement time|recorded at|event time/i.test(norm(h))})||"";
+  var signalDefs=[],attributeDefs=[];
+  headers.forEach(function(h){
+    if(used[h])return;
+    var st=signalType(h), nr=numericRatio(h);
+    if(st || (nr>=0.78 && /value|measure|reading|level|score|count|rate|index|amount|quantity/i.test(norm(h)))){
+      signalDefs.push({column:h,type:st||pretty(h),unit:(/percent|%|spo2/i.test(norm(h))?"%":/heart|pulse|bpm/i.test(norm(h))?"bpm":/temperature/i.test(norm(h))?"°C":/glucose/i.test(norm(h))?"mg/dL":""),observed_at:timestamp});
+      used[h]=true;
+    }
+  });
+  headers.forEach(function(h){if(!used[h])attributeDefs.push({column:h,key:pretty(h),data_type:"text"})});
+  var detectedRows=rows.filter(function(r){return Object.values(r).some(function(v){return String(v??"").trim()})});
+  var mappedCount=Object.values(core).filter(Boolean).length;
+  var autoCount=mappedCount+signalDefs.length;
+  var confidence=autoCount>=Math.max(2,Math.ceil(headers.length*.35))?"HIGH":"REVIEW";
+  function selectFor(key,aliases){
+    var selected=core[key]||"";
+    var candidates=headers.map(function(h){return {h:h,s:score(h,aliases)}}).filter(function(x){return x.s>0});
+    candidates.sort(function(a,b){return b.s-a.s});
+    candidates=candidates.slice(0,6);
+    return "<select id='m_"+key+"'>"+(selected?"":"<option value=''>— not detected —</option>")+candidates.map(function(x){return "<option value='"+esc(x.h)+"' "+(x.h===selected?"selected":"")+">"+esc(pretty(x.h))+" · "+(x.s>=90?"strong":x.s>=60?"good":"review")+"</option>"}).join("")+"</select>";
+  }
+  function identityCard(f){
+    var selected=core[f[0]],status=selected?"AUTO-MATCHED":"NEEDS REVIEW";
+    return "<div class='smart-map-row'><div><b>"+esc(f[1])+"</b><small>"+(selected?"Mapped from <strong>"+esc(pretty(selected))+"</strong>":"No confident column found")+" </small></div><span class='"+(selected?"smart-ok":"smart-warn")+"'>"+status+"</span>"+selectFor(f[0],f[2])+"</div>";
+  }
+  var signalHtml=signalDefs.length?signalDefs.map(function(x){return "<div class='detected-row'><span class='detected-icon'>⌁</span><div><b>"+esc(x.type)+"</b><small>"+esc(pretty(x.column))+(x.unit?" · "+esc(x.unit):"")+(x.observed_at?" · timestamp: "+esc(pretty(x.observed_at)):"")+"</small></div><span class='smart-ok'>DETECTED</span></div>"}).join(""):"<div class='empty compact'><h3>No measurement columns detected</h3><p>That's okay — CARE & CTRL will import the patient data and preserve other fields.</p></div>";
+  var attrPreview=attributeDefs.slice(0,8).map(function(x){return "<span class='data-chip'>"+esc(pretty(x.column))+"</span>"}).join("");
+  var previewRows=detectedRows.slice(0,4), previewHeaders=headers.slice(0,Math.min(6,headers.length));
+  var preview=previewRows.map(function(r){return "<tr>"+previewHeaders.map(function(h){return "<td>"+esc(String(r[headers.indexOf(h)]??"").slice(0,42))+"</td>"}).join("")+"</tr>"}).join("");
+  var heads=previewHeaders.map(function(h){return "<th>"+esc(pretty(h))+"</th>"}).join("");
+  $("#csvStatus").innerHTML="<div class='csv-wizard smart-import'>"+
+    "<div class='csv-wizard-head'><div><p class='eyebrow'>CARE & CTRL DATA INGESTION</p><h2>We analysed your file</h2><p><b>"+detectedRows.length+"</b> data rows · <b>"+headers.length+"</b> source columns · schema confidence <b>"+confidence+"</b>. No patient-by-patient entry is required.</p></div><span class='source-badge sim'>AUTO-PROFILED</span></div>"+
+    "<div class='smart-summary'><div><b>"+mappedCount+"</b><span>core fields mapped</span></div><div><b>"+signalDefs.length+"</b><span>signals detected</span></div><div><b>"+attributeDefs.length+"</b><span>extra fields preserved</span></div><div><b>0</b><span>manual data entry</span></div></div>"+
+    "<div class='csv-steps'><span class='done'>1 File analysed</span><span class='active'>2 Review intelligence</span><span>3 Import</span></div>"+
+    "<div class='csv-section'><div class='csv-section-title'><div><b>Patient identity</b><small>CARE & CTRL automatically selected the strongest matches. Change only if needed.</small></div><span>"+mappedCount+" mapped</span></div><div class='smart-map'>"+fields.map(identityCard).join("")+"</div></div>"+
+    "<div class='csv-section'><div class='csv-section-title'><div><b>Clinical signals detected</b><small>Numeric and known healthcare measurements are converted into Digital Twin signals automatically.</small></div><span>"+signalDefs.length+" detected</span></div><div class='detected-list'>"+signalHtml+"</div></div>"+
+    "<div class='csv-section'><div class='csv-section-title'><div><b>Additional data preserved</b><small>Fields outside the core model are not discarded. They stay attached to the imported patient record.</small></div><span>"+attributeDefs.length+" preserved</span></div><div class='chip-cloud'>"+attrPreview+(attributeDefs.length>8?"<span class='data-chip more'>+"+(attributeDefs.length-8)+" more</span>":"")+"</div></div>"+
+    "<div class='csv-section csv-preview'><div class='csv-section-title'><div><b>Live preview</b><small>What CARE & CTRL is about to ingest</small></div><span>First "+previewRows.length+" rows</span></div><div class='preview'><table><thead><tr>"+heads+"</tr></thead><tbody>"+preview+"</tbody></table></div></div>"+
+    "<div class='csv-actions'><div><b>Ready to build the Digital Twin dataset?</b><small>CARE & CTRL will process all rows, create/update patients, ingest detected measurements, and preserve additional fields.</small></div><button class='button primary' id='importBtn'>Import & build dataset →</button></div>"+
     "</div>";
   $("#importBtn").onclick=importCsv;
 }
-async function importCsv(){var v=function(k){return $("#m_"+k).value||""},m={external_ref:v("ref"),display_name:v("name"),date_of_birth:v("dob"),sex:v("sex"),signal_type:v("type"),value_numeric:v("value"),unit:v("unit"),observed_at:v("obs")};if(!m.external_ref||!m.display_name){toast("Mapping required","Select patient reference and display name.");return}var rows=S.rows.map(function(r){return Object.fromEntries(S.headers.map(function(h,i){return [h,r[i]??""]}))});try{var d=await api("/data/import",{method:"POST",body:JSON.stringify({rows:rows,mapping:m,file_name:S.file.name})});$("#csvStatus").innerHTML="<div class='helper'><b>Import complete:</b> "+d.patients_imported+" patients · "+d.signals_imported+" signals. Source is an <b>IMPORTED SNAPSHOT</b>, not LIVE.</div>";toast("Import complete","Workspace data updated.");loadOverview()}catch(e){toast("Import failed",e.message)}}
+async function importCsv(){
+  var v=function(k){return $("#m_"+k)?.value||""};
+  var headers=S.headers.slice(),rows=S.rows.slice();
+  function norm(x){return String(x||"").toLowerCase().replace(/\{[^}]*\}/g,"").replace(/[_{}()[\]-]+/g," ").replace(/\s+/g," ").trim()}
+  function pretty(h){return String(h||"").replace(/\{[^}]*\}/g,"").replace(/[_-]+/g," ").replace(/([a-z])([A-Z])/g,"$1 $2").replace(/\s+/g," ").trim()}
+  function signalType(h){var n=norm(h),m=[[/heart rate|pulse|bpm/,"Heart rate"],[/glucose|blood sugar/,"Glucose"],[/spo2|oxygen saturation/,"SpO₂"],[/temperature|temp/,"Temperature"],[/respiratory rate|resp rate/,"Respiratory rate"],[/systolic|sbp/,"Blood pressure systolic"],[/diastolic|dbp/,"Blood pressure diastolic"],[/blood pressure|^bp$/,"Blood pressure"],[/hrv/,"HRV"],[/steps/,"Steps"],[/sleep/,"Sleep duration"],[/weight/,"Weight"],[/height/,"Height"],[/bmi/,"BMI"],[/stress/,"Stress score"]];for(var i=0;i<m.length;i++)if(m[i][0].test(n))return m[i][1];return ""}
+  var core={external_ref:v("ref"),display_name:v("name"),date_of_birth:v("dob"),sex:v("sex"),status:v("status")};
+  var used={};Object.keys(core).forEach(function(k){if(core[k])used[core[k]]=true});
+  var timestamp=headers.find(function(h){return /observed|timestamp|effective|datetime|date time|measurement time|recorded at|event time/i.test(norm(h))})||"";
+  var signals=[];
+  headers.forEach(function(h){
+    if(used[h])return;
+    var st=signalType(h),vals=rows.map(function(r){return String(r[headers.indexOf(h)]??"").trim()}).filter(Boolean).slice(0,80);
+    var nr=vals.length?vals.filter(function(x){return Number.isFinite(Number(x.replace(/,/g,"").replace(/%$/,"")))}).length/vals.length:0;
+    if(st||(nr>=.78&&/value|measure|reading|level|score|count|rate|index|amount|quantity/i.test(norm(h)))){
+      signals.push({column:h,type:st||pretty(h),unit:/percent|%|spo2/i.test(norm(h))?"%":/heart|pulse|bpm/i.test(norm(h))?"bpm":/temperature/i.test(norm(h))?"°C":/glucose/i.test(norm(h))?"mg/dL":"",observed_at:timestamp});
+      used[h]=true;
+    }
+  });
+  var attributes=headers.filter(function(h){return !used[h]}).map(function(h){return {column:h,key:pretty(h),data_type:"text"}});
+  if(!core.external_ref&&!core.display_name&&!core.date_of_birth){toast("Review the identity mapping","CARE & CTRL needs at least a patient identifier, name, or another identity field.");return}
+  var rowsObj=rows.map(function(r){var o={};headers.forEach(function(h,i){o[h]=r[i]??""});return o});
+  var btn=$("#importBtn");if(btn){btn.disabled=true;btn.textContent="Building dataset…"}
+  try{
+    var d=await api("/data/import",{method:"POST",body:JSON.stringify({rows:rowsObj,mapping:Object.assign(core,{signals:signals,attributes:attributes}),file_name:S.file.name})});
+    $("#csvStatus").innerHTML="<div class='import-success'><div class='success-icon'>✓</div><div><p class='eyebrow'>IMPORT COMPLETE</p><h2>CARE & CTRL built the dataset</h2><p>"+d.patients_imported+" new patients · "+(d.patients_updated||0)+" updated · "+d.signals_imported+" signals · "+(d.attributes_preserved||0)+" additional fields preserved.</p><small>"+(d.skipped||0)+" structural/empty rows ignored. This source remains an <b>IMPORTED SNAPSHOT</b>, not a live feed.</small></div></div>";
+    toast("Dataset ready","CARE & CTRL is now using the imported healthcare snapshot.");S.externalMode=false;S.view="home";await loadOverview();await render();
+  }catch(e){if(btn){btn.disabled=false;btn.textContent="Import & build dataset →"}toast("Import failed",e.message)}
+}
 async function changeAction(id,status){try{await api("/actions/"+id,{method:"POST",body:JSON.stringify({status:status})});toast(status==="approved"?"Action approved":"Action rejected","Decision written to audit trail.");render()}catch(e){toast("Decision failed",e.message)}}
 async function copilot(k){try{var d;if(S.externalMode){d={pending_actions:0,patients_needing_attention:S.patients.filter(function(p){return p.status==="active"}).length,facilities:S.selectedSource?1:0,resource_records:0,latest_action_status:"No action generated yet from this source"}}else d=await api("/copilot/context");var q=k==="attention"?"What needs attention in this connected healthcare dataset?":k==="pressure"?"Where is operational pressure building, based only on the connected data?":"Explain the latest action or decision state from the connected data.";var ctx={source:S.selectedSource||null,patients:S.patients.slice(0,80),workspace:d,generated_at:new Date().toISOString()};$("#copilotAnswer").innerHTML="<div class='ai-answer'><h3>Analysing verified context…</h3><p>Gemini is reading the connected source and will not invent missing values.</p></div>";var out=await api("/copilot/ask",{method:"POST",body:JSON.stringify({question:q,context:ctx})});$("#copilotAnswer").innerHTML="<div class='ai-answer'><h3>Grounded AI analysis</h3><p>"+esc(out.answer)+"</p><small>Gemini · CARE & CTRL source context · "+new Date().toLocaleTimeString("en-IN")+"</small></div>"}catch(e){$("#copilotAnswer").innerHTML="<div class='ai-answer'><h3>AI is temporarily unavailable</h3><p>"+esc(e.message)+"</p></div>"}}
 async function loadOverview(){try{S.overview=await api("/system/overview");$("#dataState").textContent=S.overview.connected_sources?"DATA CONNECTED":"DATA AWAITING";$("#dataDot").style.background=S.overview.connected_sources?"#27b4a7":"#b97817";$("#systemStatus").textContent=S.overview.connected_sources?"System operational":"Ready for verified sources";$("#systemSub").textContent=S.overview.connected_sources?"Backend connected · verified sources available":"Backend connected · awaiting verified sources";$("#systemDot").style.background=S.overview.connected_sources?"#43c2a8":"#b97817"}catch(e){$("#dataState").textContent="CONNECTION ISSUE";$("#systemDot").style.background="#b33b45";$("#systemStatus").textContent="API unavailable"}}
 async function workspace(){var d=await api("/hospital/context");S.member=d.member;if(!S.member){S.externalMode=true;$("#modalRoot").innerHTML="<div class='modal-backdrop' id='modal'><div class='modal'><p class='eyebrow'>WELCOME TO CARE & CTRL</p><h2>Choose how you want to start</h2><p>First, connect a healthcare data source. You can create an organisation workspace now, or explore hospitals and public/research sources without creating one yet.</p><form id='setup'><div class='form-grid'><div class='field'><label>ORGANISATION / HOSPITAL</label><input name='name' required placeholder='City Care Hospital'></div><div class='field'><label>CITY</label><input name='city' placeholder='Chennai'></div><div class='field'><label>STATE</label><input name='state' placeholder='Tamil Nadu'></div></div><div class='modal-actions'><button type='button' class='button' id='skipWorkspace'>Continue without workspace</button><button class='button primary'>Create workspace</button></div></form></div></div>";$("#skipWorkspace").onclick=function(){$("#modal").remove();S.view="explorer";render()};$("#setup").onsubmit=async function(e){e.preventDefault();try{await api("/hospital/onboard",{method:"POST",body:JSON.stringify(Object.fromEntries(new FormData(e.target).entries()))});S.externalMode=false;$("#modal").remove();await boot()}catch(x){toast("Setup failed",x.message)}}}}
 async function refreshExternalSource(){if(!S.externalMode||!S.selectedSource)return;try{var d;if(S.selectedSource.type==="LIVE FHIR"&&S.selectedSource.endpoint){d=await api("/explorer/fhir-live?endpoint="+encodeURIComponent(S.selectedSource.endpoint))}else if(S.selectedSource.id==="hapi-r4"){d=await api("/explorer/fhir-patients?count=50")}else{return}S.patients=d.patients||[];S.selectedSource.freshness="Fetched "+new Date(d.fetched_at||Date.now()).toLocaleTimeString("en-IN");if(d.resource_counts)S.selectedSource.resource_counts=d.resource_counts;if(d.unavailable_resources)S.selectedSource.unavailable_resources=d.unavailable_resources;S.selectedSource.accessState="CONNECTED";if(S.view==="patients"||S.view==="home"||S.view==="data")await render();$("#dataState").textContent="SOURCE SYNCED · "+new Date().toLocaleTimeString("en-IN")}catch(e){S.selectedSource.accessState="STALE / ACCESS ERROR";$("#dataState").textContent="SOURCE STALE"}} 
 async function boot(){await workspace();await loadOverview();await render();setInterval(function(){if(document.visibilityState==="visible"){loadOverview();refreshExternalSource()}},90000)}
-$("#menuBtn").onclick=function(){$("#sidebar").classList.toggle("open")};$("#refreshBtn").onclick=function(){loadOverview();render();toast("Refreshing","Checking the latest workspace state.")};$("#signoutBtn").onclick=async function(){try{await window.hatchable.auth?.signOut()}finally{location.replace("/login")}};
+async function dockCopilotAsk(kind){
+  var q=kind==="attention"?"What needs attention in this connected healthcare dataset?":kind==="patterns"?"What patterns are visible in the connected healthcare dataset?":"Summarise the connected healthcare dataset and its evidence state.";
+  var answer=$("#copilotDockAnswer");answer.innerHTML="<span class='dock-thinking'>✦</span><b>Reading verified context…</b><small>CARE & CTRL Copilot is grounding the answer in the current source.</small>";
+  try{
+    var ctx={source:S.selectedSource||null,patients:S.patients.slice(0,80),workspace:S.overview||{},generated_at:new Date().toISOString()};
+    var out=await api("/copilot/ask",{method:"POST",body:JSON.stringify({question:q,context:ctx})});
+    answer.innerHTML="<span class='dock-ai'>AI</span><b>Grounded analysis</b><p>"+esc(out.answer)+"</p><small>Source-bound · "+new Date().toLocaleTimeString("en-IN")+"</small>";
+  }catch(e){answer.innerHTML="<span class='dock-warn'>!</span><b>Copilot unavailable</b><small>"+esc(e.message)+"</small>"}
+}
+function initCopilotDock(){
+  var dock=$("#copilotDock"),bubble=$("#copilotBubble"),pop=$("#copilotPopover"),close=$("#copilotClose");
+  if(!dock||dock.dataset.ready)return;
+  dock.dataset.ready="1";
+  bubble.onclick=function(){pop.hidden=false;dock.classList.add("open")};
+  close.onclick=function(){pop.hidden=true;dock.classList.remove("open");dock.classList.add("cooldown");setTimeout(function(){dock.classList.remove("cooldown")},5000)};
+  dock.querySelectorAll("[data-dock-prompt]").forEach(function(b){b.onclick=function(){dockCopilotAsk(b.dataset.dockPrompt)}});
+}
+$("#menuBtn").onclick=function(){$("#sidebar").classList.toggle("open")};
+initCopilotDock();$("#refreshBtn").onclick=function(){loadOverview();render();toast("Refreshing","Checking the latest workspace state.")};$("#signoutBtn").onclick=async function(){try{await window.hatchable.auth?.signOut()}finally{location.replace("/login")}};
 (async function(){if(!window.hatchable?.auth){location.replace("/login");return}try{var s=await window.hatchable.auth.getSession();if(!s?.user){location.replace("/login?next="+encodeURIComponent(location.pathname));return}$("#avatar").textContent=(s.user.name||s.user.email||"CC").split(/\s+/).map(function(x){return x[0]}).slice(0,2).join("").toUpperCase();await boot()}catch(e){toast("Session issue",e.message);setTimeout(function(){location.replace("/login")},500)}})();
