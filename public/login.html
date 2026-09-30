@@ -44,7 +44,7 @@ body{min-height:100vh;background:#071521;display:grid;place-items:center;color:#
 </div>
 <script>
 (function(){
-const A=window.hatchable?.auth,$=id=>document.getElementById(id);let step="email",hasPasskey=false;
+const A=window.hatchable.auth,$=id=>document.getElementById(id);let step="email",hasPasskey=false;
 const next=(()=>{const n=new URLSearchParams(location.search).get("next")||"/";return n.startsWith("/")&&!n.startsWith("//")?n:"/"})();
 function msg(t,e=false){$("msg").textContent=t||"";$("msg").className="msg"+(e?" err":"")}
 function go(){location.replace(next)}

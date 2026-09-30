@@ -1,4 +1,4 @@
-const API=window.__HATCHABLE__?.api||"/api",A=window.hatchable?.auth,$=s=>document.querySelector(s);
+const API=window.__HATCHABLE__?.api||"/api",A=window.hatchable.auth,$=s=>document.querySelector(s);
 const S={view:"explorer",patients:[],selected:null,sources:[],overview:null,member:null,headers:[],rows:[],file:null,selectedSource:null,externalMode:true,hospitals:[]};
 const esc=v=>String(v??"").replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]});
 const titles={home:"Command Center",patients:"Patients",population:"Population",network:"PHC Network",resources:"Resources",actions:"Actions",reports:"Reports",explorer:"Hospital & Data Explorer",data:"Data & Trust"};
