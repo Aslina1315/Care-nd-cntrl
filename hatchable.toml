@@ -2,7 +2,7 @@
 enabled = true
 providers = ["email","google"]
 login_path = "/login"
-hosted_login = true
+hosted_login = false
 
 [ai]
 required = true
