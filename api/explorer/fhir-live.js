@@ -1,4 +1,4 @@
-export const access="public";
+export const access="user";
 export const methods=["GET"];
 
 function refId(ref){
@@ -56,7 +56,11 @@ export default async function(req,res){
   try{
     const endpoint=String(req.query?.endpoint||"").trim();
     if(!/^https:\/\//i.test(endpoint)) return res.status(400).json({error:"HTTPS FHIR endpoint required"});
-    const base=endpoint.replace(/\/$/,"");
+    const u=new URL(endpoint);
+    const host=u.hostname.toLowerCase();
+    const privateHost=host==="localhost"||host==="127.0.0.1"||host==="0.0.0.0"||host==="::1"||/^10\./.test(host)||/^192\.168\./.test(host)||/^169\.254\./.test(host)||/^172\.(1[6-9]|2\d|3[01])\./.test(host);
+    if(privateHost) return res.status(400).json({error:"Private or local FHIR endpoints are not allowed through the hosted connector"});
+    const base=u.toString().replace(/\/$/,"");
     const types=["Patient","Observation","Condition","Encounter"];
     const results=await Promise.allSettled(types.map(t=>fetchBundle(base,t,t==="Patient"?50:500)));
     const by={observations:{},conditions:{},encounters:{}};
