@@ -1,123 +1,52 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#071521">
-  <title>CARE & CTRL — See earlier. Decide smarter. Act sooner.</title>
-  <meta name="description" content="Healthcare intelligence connecting patient signals, population trends, PHC pressure and actionable resource decisions.">
-  <link rel="stylesheet" href="/theme.css">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#071a20">
+<title>CARE & CTRL — Calm intelligence for connected care</title>
+<meta name="description" content="A connected healthcare intelligence workspace from patient signals to population pressure, resources and human-approved action.">
+<link rel="stylesheet" href="/theme.css">
 </head>
 <body>
-  <div class="app-shell">
-    <aside class="sidebar" id="sidebar">
-      <div class="brand">
-        <div class="brand-mark" aria-hidden="true"><span></span><i></i></div>
-        <div><strong>CARE & CTRL</strong><small>Calm intelligence</small></div>
-      </div>
-      <nav class="nav" aria-label="Primary navigation">
-        <button class="nav-item active" data-view="home"><span>⌂</span><div><b>Home</b><small>What needs attention?</small></div></button>
-        <button class="nav-item" data-view="patients"><span>◉</span><div><b>Patients</b><small>Who needs attention?</small></div></button>
-        <button class="nav-item" data-view="population"><span>◌</span><div><b>Population</b><small>What is changing?</small></div></button>
-        <button class="nav-item" data-view="network"><span>⌁</span><div><b>PHC Network</b><small>Where is pressure?</small></div></button>
-        <button class="nav-item" data-view="resources"><span>▦</span><div><b>Resources</b><small>What will be needed?</small></div></button>
-        <button class="nav-item" data-view="actions"><span>✓</span><div><b>Actions</b><small>What can we do?</small></div></button>
-        <button class="nav-item" data-view="reports"><span>▤</span><div><b>Reports</b><small>What happened?</small></div></button>
-      </nav>
-      <div class="sidebar-bottom">
-        <button class="nav-item" data-view="data"><span>◈</span><div><b>Data & Trust</b><small>Can I trust it?</small></div></button>
-        <div class="system-card">
-          <div class="status-dot"></div>
-          <div><b>System operational</b><small id="systemStatus">Checking services…</small></div>
-        </div>
-      </div>
-    </aside>
-
-    <main class="main">
-      <header class="topbar">
-        <button class="mobile-menu" id="menuBtn" aria-label="Open navigation">☰</button>
-        <div class="crumb"><span>CARE & CTRL</span><b>/</b><strong id="viewTitle">Command Center</strong></div>
-        <div class="top-actions">
-          <span class="live-chip"><i></i><span id="dataState">DATA STATUS</span></span>
-          <button class="icon-btn" title="Notifications" aria-label="Notifications">♧<em>2</em></button>
-          <div class="avatar">AS</div>
-        </div>
-      </header>
-
-      <section class="content" id="app">
-        <div class="hero">
-          <div>
-            <p class="eyebrow">COMMAND CENTER · <span id="today"></span></p>
-            <h1>See earlier.<br><em>Decide smarter.</em></h1>
-            <p class="hero-copy">One connected view from patient signals to population pressure, resource needs and human-approved action.</p>
-          </div>
-          <div class="hero-state">
-            <div class="pulse-ring"><span></span></div>
-            <div><small>NETWORK STATE</small><strong>Ready for signals</strong><span>Awaiting verified data streams</span></div>
-          </div>
-        </div>
-
-        <div class="metric-grid">
-          <article class="metric-card">
-            <div class="metric-head"><span>Patients needing attention</span><i>◉</i></div>
-            <strong id="metricPatients">—</strong>
-            <small>Awaiting connected patient signals</small>
-          </article>
-          <article class="metric-card">
-            <div class="metric-head"><span>PHC pressure</span><i>⌁</i></div>
-            <strong id="metricPressure">—</strong>
-            <small>Calculated from verified facility data</small>
-          </article>
-          <article class="metric-card">
-            <div class="metric-head"><span>Resource outlook</span><i>▦</i></div>
-            <strong id="metricResources">—</strong>
-            <small>No forecast published yet</small>
-          </article>
-          <article class="metric-card accent">
-            <div class="metric-head"><span>Pending human decisions</span><i>✓</i></div>
-            <strong id="metricActions">—</strong>
-            <small>Nothing is auto-approved</small>
-          </article>
-        </div>
-
-        <div class="section-grid">
-          <article class="panel attention-panel">
-            <div class="panel-head"><div><span class="eyebrow">DECISION FLOW</span><h2>From signal to action</h2></div><span class="secure-badge">Human-in-the-loop</span></div>
-            <div class="flow">
-              <div class="flow-step"><span>01</span><b>Patient signal</b><small>Current health state</small></div>
-              <div class="flow-line"></div>
-              <div class="flow-step"><span>02</span><b>Digital twin</b><small>Personal trajectory</small></div>
-              <div class="flow-line"></div>
-              <div class="flow-step"><span>03</span><b>Population trend</b><small>Local pressure</small></div>
-              <div class="flow-line"></div>
-              <div class="flow-step"><span>04</span><b>PHC need</b><small>Resource outlook</small></div>
-              <div class="flow-line"></div>
-              <div class="flow-step"><span>05</span><b>Action</b><small>Human approval</small></div>
-            </div>
-          </article>
-
-          <article class="panel copilot-card">
-            <div class="copilot-glow"></div>
-            <div class="panel-head"><div><span class="eyebrow">CARE & CTRL COPILOT</span><h2>Ask the system</h2></div><span class="ai-badge">AI</span></div>
-            <p>Grounded in the application's verified data and tools. It will never invent a patient, forecast or stock level.</p>
-            <div class="suggestions"><button>What needs attention?</button><button>Where is pressure building?</button><button>Explain an action</button></div>
-          </article>
-        </div>
-
-        <article class="panel trust-panel">
-          <div class="panel-head"><div><span class="eyebrow">TRUST LAYER</span><h2>Every decision carries its evidence</h2></div><button class="text-btn" data-view="data">Open data & trust →</button></div>
-          <div class="trust-grid">
-            <div><b>Source</b><span>Every signal identifies where it came from.</span></div>
-            <div><b>Freshness</b><span>Stale information is never presented as live.</span></div>
-            <div><b>Model</b><span>Predictions expose the model/version behind them.</span></div>
-            <div><b>Approval</b><span>Recommendations remain human decisions.</span></div>
-          </div>
-        </article>
-
-        <div class="footer-line"><span>CARE & CTRL</span><span>See earlier. Decide smarter. Act sooner.</span><span id="apiVersion">Backend: checking…</span></div>
-      </section>
-    </main>
+<div class="app-shell">
+<aside class="sidebar" id="sidebar">
+  <div class="brand">
+    <div class="brand-mark"><span></span><i></i><b></b></div>
+    <div><strong>CARE & CTRL</strong><small>Calm intelligence</small></div>
   </div>
-  <script src="/app.js"></script>
-</body>
-</html>
+  <div class="nav-scroll">
+    <div class="nav-group"><span class="nav-label">SEE</span>
+      <button class="nav-item active" data-view="home"><span>⌂</span><div><b>Command Center</b><small>What needs attention?</small></div></button>
+      <button class="nav-item" data-view="patients"><span>◉</span><div><b>Patients</b><small>Who needs attention?</small></div></button>
+      <button class="nav-item" data-view="population"><span>◌</span><div><b>Population</b><small>What is changing?</small></div></button>
+    </div>
+    <div class="nav-group"><span class="nav-label">DECIDE</span>
+      <button class="nav-item" data-view="network"><span>⌁</span><div><b>PHC Network</b><small>Where is pressure?</small></div></button>
+      <button class="nav-item" data-view="resources"><span>▦</span><div><b>Resources</b><small>What will be needed?</small></div></button>
+      <button class="nav-item" data-view="actions"><span>✓</span><div><b>Actions</b><small>What can we do?</small></div></button>
+      <button class="nav-item" data-view="reports"><span>▤</span><div><b>Reports</b><small>What happened?</small></div></button>
+    </div>
+    <div class="nav-group"><span class="nav-label">TRUST</span>
+      <button class="nav-item" data-view="data"><span>◈</span><div><b>Data & Trust</b><small>Can I trust it?</small></div></button>
+    </div>
+  </div>
+  <div class="sidebar-bottom">
+    <div class="system-card"><div class="status-dot" id="systemDot"></div><div><b id="systemStatus">Checking system</b><small id="systemSub">Connecting to verified services…</small></div></div>
+  </div>
+</aside>
+
+<main class="main">
+<header class="topbar">
+  <button class="mobile-menu" id="menuBtn" aria-label="Open navigation">☰</button>
+  <div class="crumb"><span>CARE & CTRL</span><b>/</b><strong id="viewTitle">Command Center</strong></div>
+  <div class="top-actions">
+    <span class="live-chip"><i id="dataDot"></i><span id="dataState">CONNECTING</span></span>
+    <button class="icon-btn" id="refreshBtn" title="Refresh system state" aria-label="Refresh">↻</button>
+    <div class="avatar">AS</div>
+  </div>
+</header>
+<section class="content" id="app"></section>
+</main>
+</div>
+<script src="/app.js"></script>
+</body></html>
