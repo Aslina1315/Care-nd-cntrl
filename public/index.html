@@ -3,20 +3,19 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#071a20">
-<title>CARE & CTRL — Calm intelligence for connected care</title>
-<meta name="description" content="A connected healthcare intelligence workspace from patient signals to population pressure, resources and human-approved action.">
+<title>CARE & CTRL — See earlier. Decide smarter.</title>
+<meta name="description" content="Healthcare intelligence from patient signals to population pressure, resources and human-approved action.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/theme.css">
 </head>
 <body>
 <div class="app-shell">
 <aside class="sidebar" id="sidebar">
-  <div class="brand">
-    <div class="brand-mark"><span></span><i></i><b></b></div>
-    <div><strong>CARE & CTRL</strong><small>Calm intelligence</small></div>
-  </div>
+  <div class="brand"><div class="brand-mark"><span></span><i></i><b></b></div><div><strong>CARE & CTRL</strong><small>Healthcare intelligence</small></div></div>
   <div class="nav-scroll">
     <div class="nav-group"><span class="nav-label">SEE</span>
-      <button class="nav-item active" data-view="home"><span>⌂</span><div><b>Command Center</b><small>What needs attention?</small></div></button>
+      <button class="nav-item active" data-view="home"><span>⌂</span><div><b>Command Center</b><small>What needs my attention?</small></div></button>
       <button class="nav-item" data-view="patients"><span>◉</span><div><b>Patients</b><small>Who needs attention?</small></div></button>
       <button class="nav-item" data-view="population"><span>◌</span><div><b>Population</b><small>What is changing?</small></div></button>
     </div>
@@ -26,27 +25,26 @@
       <button class="nav-item" data-view="actions"><span>✓</span><div><b>Actions</b><small>What can we do?</small></div></button>
       <button class="nav-item" data-view="reports"><span>▤</span><div><b>Reports</b><small>What happened?</small></div></button>
     </div>
+    <div class="nav-group"><span class="nav-label">CONNECT</span>
+      <button class="nav-item" data-view="explorer"><span>◎</span><div><b>Hospital & Data Explorer</b><small>Bring a source into CARE & CTRL</small></div></button>
+    </div>
     <div class="nav-group"><span class="nav-label">TRUST</span>
       <button class="nav-item" data-view="data"><span>◈</span><div><b>Data & Trust</b><small>Can I trust it?</small></div></button>
     </div>
   </div>
   <div class="sidebar-bottom">
     <div class="system-card"><div class="status-dot" id="systemDot"></div><div><b id="systemStatus">Checking system</b><small id="systemSub">Connecting to verified services…</small></div></div>
+    <button class="signout" id="signoutBtn">Sign out</button>
   </div>
 </aside>
-
 <main class="main">
 <header class="topbar">
   <button class="mobile-menu" id="menuBtn" aria-label="Open navigation">☰</button>
   <div class="crumb"><span>CARE & CTRL</span><b>/</b><strong id="viewTitle">Command Center</strong></div>
-  <div class="top-actions">
-    <span class="live-chip"><i id="dataDot"></i><span id="dataState">CONNECTING</span></span>
-    <button class="icon-btn" id="refreshBtn" title="Refresh system state" aria-label="Refresh">↻</button>
-    <div class="avatar">AS</div>
-  </div>
+  <div class="top-actions"><span class="live-chip"><i id="dataDot"></i><span id="dataState">CONNECTING</span></span><button class="icon-btn" id="refreshBtn" title="Refresh system state">↻</button><div class="avatar" id="avatar">CC</div></div>
 </header>
 <section class="content" id="app"></section>
-</main>
-</div>
+</main></div>
+<div id="modalRoot"></div>
 <script src="/app.js"></script>
 </body></html>

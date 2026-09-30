@@ -33,7 +33,7 @@ body{min-height:100vh;background:#071521;display:grid;place-items:center;color:#
 <form id="form">
 <div class="field" id="emailField"><label for="email">WORK EMAIL</label><input id="email" type="email" autocomplete="username webauthn" placeholder="you@organisation.com" required></div>
 <div class="field hidden" id="codeField"><label for="code">VERIFICATION CODE</label><input id="code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="Enter 6-digit code"></div>
-<button class="primary" id="submit" type="submit">Continue</button>
+<button class="primary" id="submit" type="submit">Continue with email</button><div style="display:flex;align-items:center;gap:10px;margin:15px 0;color:#9aa6aa;font-size:9px"><span style="height:1px;background:#e1e7e5;flex:1"></span>OR<span style="height:1px;background:#e1e7e5;flex:1"></span></div><button class="secondary" id="googleBtn" type="button">Continue with Google</button>
 <button class="secondary hidden" id="back" type="button">Use a different email</button>
 </form>
 <div class="passkey-box hidden" id="passkeyBox"><b>Use a passkey next time</b><p>Sign in faster with your fingerprint, face, or device screen lock.</p><button class="secondary" id="passkeyAdd" type="button">Add passkey</button><button class="secondary" id="passkeySkip" type="button">Not now</button></div>
@@ -69,7 +69,7 @@ finally{$("submit").disabled=false}
 };
 $("passkeyAdd").onclick=async()=>{try{await A.registerPasskey();go()}catch(e){msg(e?.message||"Passkey setup was cancelled. You can continue without it.",true)}};
 $("passkeySkip").onclick=()=>{localStorage.setItem("passkey_offer_declined","1");go()};
-$("email").focus();
+$("googleBtn").onclick=async()=>{msg("");$("googleBtn").disabled=true;try{if(A.signInWithGoogle){const d=await A.signInWithGoogle();if(d?.user)go();else msg("Google sign-in could not be completed.",true)}else if(A.startLogin){const d=await A.startLogin({provider:"google"});if(d?.url)location.href=d.url;else msg("Google sign-in is enabled in the project, but its OAuth setup still needs to be completed by the project owner.",true)}else msg("Google sign-in is not available in this authentication configuration yet.",true)}catch(e){msg(e?.message||"Google sign-in could not be completed.",true)}finally{$("googleBtn").disabled=false}};$("email").focus();
 })();
 </script>
 </body>

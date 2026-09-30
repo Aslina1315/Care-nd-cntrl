@@ -1,5 +1,5 @@
 [auth]
 enabled = true
-providers = ["email"]
+providers = ["email","google"]
 login_path = "/login"
 hosted_login = true
