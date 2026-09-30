@@ -8,7 +8,9 @@ export default async function(req,res){
  const question=String(req.body?.question||"").trim();
  const context=req.body?.context||{};
  if(!question)return res.status(400).json({error:"Question is required"});
- const safe=JSON.stringify(context).slice(0,14000);
+ const history=Array.isArray(context.conversation_history)?context.conversation_history.slice(-20):[];
+ const safe=JSON.stringify(Object.assign({},context,{conversation_history:undefined})).slice(0,12000);
+ const safeHistory=JSON.stringify(history).slice(0,6000);
  try{
   const r=await ai.generateText({
    model:"gemini",
@@ -24,6 +26,7 @@ You have two jobs:
 Language rule: understand mixed-language requests (for example English + Tamil) and respond in the user's language or language mix. Use the selected UI/voice language when supplied.
 
 Never invent patient measurements, diagnoses, hospital facts, trends, resource levels, source freshness or live status. Never diagnose or make clinical decisions. Never approve/reject a clinical or operational action on behalf of a human. Consequential decisions remain human-approved.
+Use the supplied conversation history to resolve follow-up references such as “that patient”, “the previous result”, “what did I ask earlier”, or “continue from before”. The history is conversational context only; current application data is the source of truth for factual claims.
 
 Allowed UI actions ONLY:
 - navigate: move to one of these views: explorer, home, patients, population, dashboard, network, resources, actions, reports, data, help, ai
@@ -49,7 +52,7 @@ Return STRICT JSON only:
 
 If the user is only asking a healthcare/data question, use action type "none".
 If the request could cause a consequential change, do not execute it; explain that a human approval is required and use "navigate" to the relevant review page only when useful.`,
-   prompt:"User request:\n"+question+"\n\nCurrent application context:\n"+safe
+   prompt:"Recent conversation history:\n"+safeHistory+"\n\nUser request:\n"+question+"\n\nCurrent application context:\n"+safe
   });
   let parsed=null;
   try{parsed=JSON.parse(String(r.text||"").replace(/^\`\`\`json\s*/,"").replace(/\s*\`\`\`$/,"").trim())}catch(_){}
