@@ -3,3 +3,7 @@ enabled = true
 providers = ["email","google"]
 login_path = "/login"
 hosted_login = true
+
+[db.tables.hospital_members]
+read = "own"
+write = "own"
