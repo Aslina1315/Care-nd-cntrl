@@ -16,14 +16,8 @@ export default async function(req,res){
   if(rows.length>2000)return res.status(400).json({error:"Import up to 2,000 rows at a time"});
 
   const hm=await db.query("SELECT hospital_id FROM hospital_members WHERE user_id=$1 LIMIT 1",[u.id]);
-  let hospitalId;
-  if(hm.rows.length)hospitalId=hm.rows[0].hospital_id;
-  else{
-    const reg="IMPORT-"+String(u.id).replace(/[^a-zA-Z0-9]/g,"").slice(0,24)+"-"+Date.now();
-    const h=await db.query("INSERT INTO hospitals(name,registration_ref,city,state,status) VALUES($1,$2,$3,$4,'active') RETURNING id",["CARE & CTRL Import Workspace",reg,"Not specified","Not specified"]);
-    hospitalId=h.rows[0].id;
-    await db.query("INSERT INTO hospital_members(hospital_id,user_id,role,display_name) VALUES($1,$2,'staff',$3)",[hospitalId,u.id,u.email||"Workspace user"]);
-  }
+  if(!hm.rows.length) return res.status(403).json({error:"A hospital workspace is required before importing or maintaining patient data."});
+  const hospitalId=hm.rows[0].hospital_id;
 
   const src=await db.query(
     "INSERT INTO data_sources(name,source_type,status,last_seen_at,freshness_seconds,provenance) VALUES($1,'csv_upload','imported',now(),0,$2) RETURNING id,name,status,last_seen_at,provenance",
